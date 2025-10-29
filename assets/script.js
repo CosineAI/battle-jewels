@@ -223,14 +223,10 @@ console.log("Static site loaded!");
 
   function makeRandomRow() {
     const row = Array.from({ length: COLS }, () => randomInt(COLORS.length));
-    // TEMP: exact 10% per row for any power-up (uniform among orb/row/col)
+    // Bombs-only spawn: 10% per rising row, equally likely row/column bomb
     if (Math.random() < 0.10) {
       const pos = randomInt(COLS);
-      const t = Math.random();
-      if (t < 1/3) {
-        row[pos] = ORB;
-        stats.orb++;
-      } else if (t < 2/3) {
+      if (Math.random() < 0.5) {
         row[pos] = BOMB_ROW;
         stats.row++;
       } else {
