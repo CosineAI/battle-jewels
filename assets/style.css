@@ -74,6 +74,12 @@ footer {
   gap: 10px;
 }
 
+.stats {
+  font-weight: 600;
+  color: #333;
+  opacity: 0.8;
+}
+
 .controls label {
   font-weight: 600;
   color: #333;

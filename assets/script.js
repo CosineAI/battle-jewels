@@ -44,6 +44,13 @@ console.log("Static site loaded!");
   let shownScore = 0;
   const scoreEl = document.getElementById("scoreValue");
 
+  // Spawn stats (test visibility)
+  const statsEl = document.getElementById("statsValue");
+  const stats = { orb: 0, row: 0, col: 0 };
+  function updateStats() {
+    if (statsEl) statsEl.textContent = `O:${stats.orb} R:${stats.row} C:${stats.col}`;
+  }
+
   // Chain / Combo tracking
   let chainDepth = 0;   // 0 before first vanish, then 1, 2, ...
   let chainActive = false;
@@ -216,12 +223,21 @@ console.log("Static site loaded!");
 
   function makeRandomRow() {
     const row = Array.from({ length: COLS }, () => randomInt(COLORS.length));
-    // TEMP: increase power-up spawn rates to 10% for testing
+    // TEMP: exact 10% per row for any power-up (uniform among orb/row/col)
     if (Math.random() < 0.10) {
-      row[randomInt(COLS)] = ORB;
-    }
-    if (Math.random() < 0.10) {
-      row[randomInt(COLS)] = Math.random() < 0.5 ? BOMB_ROW : BOMB_COL;
+      const pos = randomInt(COLS);
+      const t = Math.random();
+      if (t < 1/3) {
+        row[pos] = ORB;
+        stats.orb++;
+      } else if (t < 2/3) {
+        row[pos] = BOMB_ROW;
+        stats.row++;
+      } else {
+        row[pos] = BOMB_COL;
+        stats.col++;
+      }
+      updateStats();
     }
     return row;
   }
