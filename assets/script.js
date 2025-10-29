@@ -347,6 +347,10 @@ console.log("Static site loaded!");
     }
     grid[ROWS - 1] = nextRow.slice();
     if (grid[0].some((v) => v !== null)) gameOver = true;
+
+    // Keep selector focused on the same tile content as rows shift up
+    if (selRow > 0) selRow--;
+
     nextRow = makeRandomRow();
     startCascadeDropThenMatch();
   }
