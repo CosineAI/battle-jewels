@@ -3,12 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Static Site</title>
+  <title>Puzzle League Clone</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+  <header>
+    <h1>Puzzle League (Clone)</h1>
+  </header>
   <main>
-    <h1>Welcome to Your Static Site</h1>
+    <div class="game-container">
+      <canvas id="game"></canvas>
+      <p class="instructions">
+        Swap adjacent tiles to make 3+ in a row or column. Mouse drag or arrows + space/enter.
+        Blocks rise from the bottom. Game over when they reach the top. Press R to restart.
+      </p>
+    </div>
   </main>
   <footer>
     <p>&copy; 2025 Your Name</p>
