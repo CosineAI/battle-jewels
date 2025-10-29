@@ -37,6 +37,7 @@ console.log("Static site loaded!");
   const speedSelect = document.getElementById("speed");
   const startBtn = document.getElementById("startBtn");
   const themeSelect = document.getElementById("theme");
+  const controlSelect = document.getElementById("control");
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
@@ -86,6 +87,7 @@ console.log("Static site loaded!");
   let selRow = ROWS - 4;
   let selCol = Math.max(0, Math.floor(COLS / 2) - 1);
   let dragStart = null;
+  let dragStartPos = null;
   let lastTime = 0;
   let gameFocused = false;
 
@@ -121,19 +123,27 @@ console.log("Static site loaded!");
     const t = (themeSelect && themeSelect.value) || "default";
     COLORS = THEMES[t] || THEMES.default;
   }
+  let controlMode = "keyboard";
+  function updateControlModeFromSelect() {
+    const v = (controlSelect && controlSelect.value) || "keyboard";
+    controlMode = v;
+  }
   // initialize from UI
   updateSpeedFromSelect();
   updateThemeFromSelect();
+  updateControlModeFromSelect();
   if (themeSelect) {
-    themeSelect.addEventListener("change", () => {
-      updateThemeFromSelect();
-    });
+    themeSelect.addEventListener("change", updateThemeFromSelect);
+  }
+  if (controlSelect) {
+    controlSelect.addEventListener("change", updateControlModeFromSelect);
   }
 
   if (startBtn) {
     startBtn.addEventListener("click", () => {
       updateSpeedFromSelect();
       updateThemeFromSelect();
+      updateControlModeFromSelect();
       restart();
       canvas.focus();
     });
@@ -141,19 +151,72 @@ console.log("Static site loaded!");
 
   // Input
   canvas.addEventListener("mousedown", (e) => {
-    const cell = toCell(e);
-    if (!cell || phase !== "idle") return;
+    if (controlMode !== "pointer" || phase !== "idle") return;
+    const cell = toCellFromEvent(e);
+    if (!cell) return;
     dragStart = cell;
+    dragStartPos = toCanvasXY(e);
   });
 
   window.addEventListener("mouseup", (e) => {
-    if (!dragStart || phase !== "idle") return;
-    const cell = toCell(e);
-    if (cell && isAdjacent(dragStart, cell)) {
-      swapAndStartCycle(dragStart, cell);
+    if (controlMode !== "pointer" || !dragStart || phase !== "idle") return;
+    const endCell = toCellFromEvent(e);
+    const endPos = toCanvasXY(e);
+    let didSwap = false;
+
+    if (endCell && endCell.row === dragStart.row && Math.abs(endCell.col - dragStart.col) === 1) {
+      swapAndStartCycle(dragStart, endCell);
+      didSwap = true;
+    } else if (dragStartPos && endPos) {
+      const dx = endPos.x - dragStartPos.x;
+      const dy = endPos.y - dragStartPos.y;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TILE * 0.25) {
+        if (dx > 0 && dragStart.col < COLS - 1) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col + 1 });
+          didSwap = true;
+        } else if (dx < 0 && dragStart.col > 0) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col - 1 });
+          didSwap = true;
+        }
+      }
     }
     dragStart = null;
+    dragStartPos = null;
   });
+
+  canvas.addEventListener("touchstart", (e) => {
+    if (controlMode !== "pointer" || phase !== "idle") return;
+    const cell = toCellFromEvent(e);
+    if (!cell) return;
+    dragStart = cell;
+    dragStartPos = toCanvasXY(e);
+  }, { passive: true });
+
+  window.addEventListener("touchend", (e) => {
+    if (controlMode !== "pointer" || !dragStart || phase !== "idle") return;
+    const endCell = toCellFromEvent(e);
+    const endPos = toCanvasXY(e);
+    let didSwap = false;
+
+    if (endCell && endCell.row === dragStart.row && Math.abs(endCell.col - dragStart.col) === 1) {
+      swapAndStartCycle(dragStart, endCell);
+      didSwap = true;
+    } else if (dragStartPos && endPos) {
+      const dx = endPos.x - dragStartPos.x;
+      const dy = endPos.y - dragStartPos.y;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TILE * 0.25) {
+        if (dx > 0 && dragStart.col < COLS - 1) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col + 1 });
+          didSwap = true;
+        } else if (dx < 0 && dragStart.col > 0) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col - 1 });
+          didSwap = true;
+        }
+      }
+    }
+    dragStart = null;
+    dragStartPos = null;
+  }, { passive: true });
 
   // Focus and scroll control
   canvas.addEventListener("focus", () => { gameFocused = true; });
@@ -175,6 +238,7 @@ console.log("Static site loaded!");
       restart();
       return;
     }
+    if (controlMode !== "keyboard") return;
     if (gameFocused) {
       const blockKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Space", "Spacebar"];
       if (blockKeys.includes(e.key)) e.preventDefault();
@@ -321,6 +385,34 @@ console.log("Static site loaded!");
     const scaleY = canvas.height / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
+    const col = Math.floor(x / TILE);
+    const row = Math.floor((y + riseOffset) / TILE);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+    return { row, col };
+  }
+
+  function getEventClientXY(e) {
+    if (e && e.touches && e.touches[0]) {
+      return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+    }
+    if (e && e.changedTouches && e.changedTouches[0]) {
+      return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  }
+
+  function toCanvasXY(e) {
+    const { clientX, clientY } = getEventClientXY(e);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    return { x, y };
+  }
+
+  function toCellFromEvent(e) {
+    const { x, y } = toCanvasXY(e);
     const col = Math.floor(x / TILE);
     const row = Math.floor((y + riseOffset) / TILE);
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
