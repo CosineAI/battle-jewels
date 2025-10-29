@@ -91,15 +91,12 @@ console.log("Static site loaded!");
         if (selRow < ROWS - 1) selRow++;
         break;
       case " ":
-      case "Enter": {
-        // Map selector visual position to grid row under it, independent of rising
-        const rGrid = Math.max(0, Math.min(ROWS - 1, Math.floor((selRow * TILE + riseOffset) / TILE)));
+      case "Enter":
         swapAndStartCycle(
-          { row: rGrid, col: selCol },
-          { row: rGrid, col: selCol + 1 }
+          { row: selRow, col: selCol },
+          { row: selRow, col: selCol + 1 }
         );
         break;
-      }
     }
   });
 
@@ -348,8 +345,8 @@ console.log("Static site loaded!");
     grid[ROWS - 1] = nextRow.slice();
     if (grid[0].some((v) => v !== null)) gameOver = true;
 
-    // Selector stays under player control; do not adjust it here.
-    // It will visually follow the blocks via riseOffset and drop animation.
+    // Keep the selector attached to the same block content across a push
+    if (selRow > 0) selRow--;
 
     nextRow = makeRandomRow();
     startCascadeDropThenMatch();
