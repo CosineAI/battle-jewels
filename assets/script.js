@@ -6,6 +6,7 @@ console.log("Static site loaded!");
   const COLS = 8;
   const ROWS = 14;
   const COLORS = ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"];
+  const ORB = -1; // special power-up tile
   const BASE_RISE = TILE / 8; // baseline speed
   let speedMultiplier = 1; // slow:0.5, normal:1, fast:1.5
   let progressMultiplier = 1; // gentle speed-up factor
@@ -49,7 +50,7 @@ console.log("Static site loaded!");
   let phase = "idle"; // "idle" | "vanish" | "drop"
   let vanishMask = makeMask(false);
   let vanishStart = 0;
-  let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (
+  let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (negative -> above target)
   initBoard();
 
   function updateSpeedFromSelect() {
@@ -160,10 +161,6 @@ console.log("Static site loaded!");
       }
     }
 
-    draw();
-    requestAnimationFrame(loop);
-  }
-
     // Score count-up animation
     if (scoreEl && shownScore < score) {
       const inc = Math.max(1, Math.floor(2000 * dt));
@@ -194,6 +191,9 @@ console.log("Static site loaded!");
     return len >= 5 ? SCORE_TABLE[5] : (SCORE_TABLE[len] || 0);
   }
 
+  function isOrb(v) { return v === ORB; }
+  function isColor(v) { return typeof v === "number" && v >= 0; }
+
   function clamp01(x) {
     return Math.max(0, Math.min(1, x));
   }
@@ -208,7 +208,13 @@ console.log("Static site loaded!");
   }
 
   function makeRandomRow() {
-    return Array.from({ length: COLS }, () => randomInt(COLORS.length));
+    const row = Array.from({ length: COLS }, () => randomInt(COLORS.length));
+    // 2% chance to generate a powerup orb in the new row
+    if (Math.random() < 0.02) {
+      const pos = randomInt(COLS);
+      row[pos] = ORB;
+    }
+    return row;
   }
 
   function initBoard() {
@@ -246,13 +252,43 @@ console.log("Static site loaded!");
   function swapAndStartCycle(a, b) {
     const { row: r0, col: c0 } = a;
     const { row: r1, col: c1 } = b;
-    const tmp = grid[r0][c0];
-    grid[r0][c0] = grid[r1][c1];
-    grid[r1][c1] = tmp;
+    const v0 = grid[r0][c0];
+    const v1 = grid[r1][c1];
+
+    // Perform swap
+    grid[r0][c0] = v1;
+    grid[r1][c1] = v0;
 
     // Begin a new chain from player input
     chainActive = true;
     chainDepth = 0;
+
+    // Orb activation: if swapped with a colored block, remove all of that color
+    let colorToClear = null;
+    let orbPos = null;
+    if (isOrb(v0) && isColor(v1)) {
+      colorToClear = v1;
+      orbPos = { row: r1, col: c1 };
+    } else if (isOrb(v1) && isColor(v0)) {
+      colorToClear = v0;
+      orbPos = { row: r0, col: c0 };
+    }
+
+    if (colorToClear !== null) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        for (let cc = 0; cc < COLS; cc++) {
+          if (grid[rr][cc] === colorToClear) {
+            cells.push({ row: rr, col: cc });
+          }
+        }
+      }
+      // Consume the orb itself
+      cells.push(orbPos);
+
+      startVanish([{ cells, length: cells.length, type: "orb" }]);
+      return;
+    }
 
     startCascadeDropThenMatch();
   }
@@ -265,7 +301,7 @@ console.log("Static site loaded!");
       let c = 0;
       while (c < COLS) {
         const color = grid[r][c];
-        if (color === null) {
+        if (color === null || color === ORB) {
           c++;
           continue;
         }
@@ -285,7 +321,7 @@ console.log("Static site loaded!");
       let r = 0;
       while (r < ROWS) {
         const color = grid[r][c];
-        if (color === null) {
+        if (color === null || color === ORB) {
           r++;
           continue;
         }
@@ -354,6 +390,15 @@ console.log("Static site loaded!");
     vanishMask = makeMask(false);
     for (const g of groups) {
       for (const cell of g.cells) vanishMask[cell.row][cell.col] = true;
+    }
+
+    // For any 5+ match (not orb-triggered), spawn an orb at the group's center cell and don't vanish it
+    for (const g of groups) {
+      if (g.type !== "orb" && g.length >= 5) {
+        const spawn = g.cells[Math.floor(g.length / 2)];
+        grid[spawn.row][spawn.col] = ORB;
+        vanishMask[spawn.row][spawn.col] = false; // preserve the orb
+      }
     }
 
     // Increment chain depth on each vanish phase within an active chain
@@ -439,7 +484,6 @@ console.log("Static site loaded!");
   }
 
   function drawTile(x, y, colorIdx, scale = 1, alpha = 1) {
-    const color = COLORS[colorIdx];
     const cx = x + TILE / 2;
     const cy = y + TILE / 2;
 
@@ -448,6 +492,35 @@ console.log("Static site loaded!");
     ctx.translate(cx, cy);
     ctx.scale(scale, scale);
     ctx.translate(-cx, -cy);
+
+    if (colorIdx === ORB) {
+      // Base tile
+      ctx.fillStyle = "#14171d";
+      ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+
+      // Shiny orb gradient
+      const rOrb = TILE / 2 - 8;
+      const grd = ctx.createRadialGradient(cx - 4, cy - 6, 2, cx, cy, rOrb);
+      grd.addColorStop(0, "rgba(255,255,255,0.95)");
+      grd.addColorStop(0.35, "rgba(180,220,255,0.75)");
+      grd.addColorStop(1, "rgba(70,120,255,0.25)");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOrb, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rim
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rOrb, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+      return;
+    }
+
+    const color = COLORS[colorIdx];
 
     ctx.fillStyle = color;
     ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
