@@ -53,6 +53,8 @@ console.log("Static site loaded!");
   let vanishMask = makeMask(false);
   let vanishStart = 0;
   let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (negative -> above target)
+  let dropStart = 0;
+
   initBoard();
 
   function updateSpeedFromSelect() {
@@ -196,8 +198,8 @@ console.log("Static site loaded!");
   function isOrb(v) { return v === ORB; }
   function isBombRow(v) { return v === BOMB_ROW; }
   function isBombCol(v) { return v === BOMB_COL; }
-  function isSpecial(v) { return typeof v === "number" &&  <v 0; }
-  function is}
+  function isSpecial(v) { return typeof v === "number" && v < 0; }
+  function isColor(v) { return typeof v === "number" && v >= 0; }
 
   function clamp01(x) {
     return Math.max(0, Math.min(1, x));
