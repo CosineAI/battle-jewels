@@ -38,13 +38,15 @@ console.log("Static site loaded!");
   let shownScore = 0;
   const scoreEl = document.getElementById("scoreValue");
 
+  // Chain / Combo tracking
+  let chainDepth = 0;   // 0 before first vanish, then 1, 2, ...
+  let chainActive = false;
+
   // Animation state
   let phase = "idle"; // "idle" | "vanish" | "drop"
   let vanishMask = makeMask(false);
   let vanishStart = 0;
-  let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (negative -> above target)
-  let dropStart = 0;
-
+  let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (
   initBoard();
 
   function updateSpeedFromSelect() {
@@ -175,6 +177,9 @@ console.log("Static site loaded!");
   }
 
   const SCORE_TABLE = { 3: 500, 4: 1200, 5: 2500 };
+  const COMBO_BONUS_PER_EXTRA_GROUP = 300;   // per additional simultaneous group
+  const CASCADE_MULTIPLIER_STEP = 0.5;       // +50% per chain step beyond the first
+
   function scoreFor(len) {
     return len >= 5 ? SCORE_TABLE[5] : (SCORE_TABLE[len] || 0);
   }
@@ -234,6 +239,11 @@ console.log("Static site loaded!");
     const tmp = grid[r0][c0];
     grid[r0][c0] = grid[r1][c1];
     grid[r1][c1] = tmp;
+
+    // Begin a new chain from player input
+    chainActive = true;
+    chainDepth = 0;
+
     startCascadeDropThenMatch();
   }
 
@@ -323,6 +333,9 @@ console.log("Static site loaded!");
     if (groups.length) {
       startVanish(groups);
     } else {
+      // End chain with no matches
+      chainActive = false;
+      chainDepth = 0;
       phase = "idle";
     }
   }
@@ -332,10 +345,21 @@ console.log("Static site loaded!");
     for (const g of groups) {
       for (const cell of g.cells) vanishMask[cell.row][cell.col] = true;
     }
-    // Award points for each group
-    let add = 0;
-    for (const g of groups) add += scoreFor(g.length);
-    score += add;
+
+    // Increment chain depth on each vanish phase within an active chain
+    if (chainActive) chainDepth++;
+
+    // Base points + combo bonus + cascade multiplier
+    let basePoints = 0;
+    for (const g of groups) basePoints += scoreFor(g.length);
+
+    const comboCount = groups.length;
+    const comboBonus = Math.max(0, comboCount - 1) * COMBO_BONUS_PER_EXTRA_GROUP;
+
+    const cascadeMultiplier = 1 + Math.max(0, chainDepth - 1) * CASCADE_MULTIPLIER_STEP;
+
+    const pointsEarned = Math.round((basePoints + comboBonus) * cascadeMultiplier);
+    score += pointsEarned;
 
     vanishStart = performance.now();
     phase = "vanish";
@@ -361,6 +385,9 @@ console.log("Static site loaded!");
       if (groups.length) {
         startVanish(groups);
       } else {
+        // End of chain
+        chainActive = false;
+        chainDepth = 0;
         phase = "idle";
       }
     }
@@ -376,6 +403,9 @@ console.log("Static site loaded!");
     if (groups.length) {
       startVanish(groups);
     } else {
+      // End of chain if no further matches
+      chainActive = false;
+      chainDepth = 0;
       phase = "idle";
     }
   }
@@ -389,6 +419,10 @@ console.log("Static site loaded!");
 
     // Keep the selector attached to the same block content across a push
     if (selRow > 0) selRow--;
+
+    // Rising can also trigger a new chain
+    chainActive = true;
+    chainDepth = 0;
 
     nextRow = makeRandomRow();
     startCascadeDropThenMatch();
