@@ -216,11 +216,11 @@ console.log("Static site loaded!");
 
   function makeRandomRow() {
     const row = Array.from({ length: COLS }, () => randomInt(COLORS.length));
-    // Independent chances per row
-    if (Math.random() < 0.02) {
+    // TEMP: increase power-up spawn rates to 10% for testing
+    if (Math.random() < 0.10) {
       row[randomInt(COLS)] = ORB;
     }
-    if (Math.random() < 0.01) {
+    if (Math.random() < 0.10) {
       row[randomInt(COLS)] = Math.random() < 0.5 ? BOMB_ROW : BOMB_COL;
     }
     return row;
