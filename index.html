@@ -19,6 +19,15 @@
           <option value="normal" selected>Normal</option>
           <option value="fast">Fast</option>
         </select>
+        <label for="theme">Theme:</label>
+        <select id="theme">
+          <option value="default" selected>Default</option>
+          <option value="pastel">Pastel</option>
+          <option value="neon">Neon</option>
+          <option value="synthwave">Synthwave</option>
+          <option value="retro">Retro</option>
+          <option value="shooter">Modern Shooter</option>
+        </select>
         <button id="startBtn">New Game</button>
         <div class="score">Score: <span id="scoreValue">0</span></div>
         <div class="stats">PU: <span id="statsValue">O:0 R:0 C:0</span></div>
@@ -27,7 +36,7 @@
       <p class="instructions">
         Swap adjacent tiles to make 3+ in a row or column. Mouse drag or arrows + space/enter.
         Blocks rise from the bottom. Game over when they reach the top.
-        Choose a speed above and click New Game, or press R to restart with the selected speed.
+        Choose a speed and theme above and click New Game, or press R to restart with the selected settings.
       </p>
     </div>
   </main>

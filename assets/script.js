@@ -5,7 +5,18 @@ console.log("Static site loaded!");
   const TILE = 36;
   const COLS = 8;
   const ROWS = 14;
-  const COLORS = ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"];
+
+  // Color themes (5 colors each, indices map to shapes in drawTile)
+  const THEMES = {
+    default: ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"],
+    pastel:  ["#ffadad", "#caffbf", "#a0c4ff", "#ffd6a5", "#bdb2ff"],
+    neon:    ["#ff2079", "#39ff14", "#00cfff", "#faff00", "#ff6ec7"],
+    synthwave: ["#ff4f9a", "#8a2be2", "#00e5ff", "#f9c80e", "#2ce8f5"],
+    retro:   ["#d35400", "#27ae60", "#c0392b", "#8e44ad", "#f1c40f"],
+    shooter: ["#4e342e", "#6d4c41", "#8d6e63", "#a1887f", "#5d4037"]
+  };
+  let COLORS = THEMES.default;
+
   const ORB = -1; // special power-up tile
   const BOMB_ROW = -2; // row bomb
   const BOMB_COL = -3; // column bomb
@@ -25,6 +36,7 @@ console.log("Static site loaded!");
 
   const speedSelect = document.getElementById("speed");
   const startBtn = document.getElementById("startBtn");
+  const themeSelect = document.getElementById("theme");
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
@@ -56,24 +68,34 @@ console.log("Static site loaded!");
   let chainActive = false;
 
   // Animation state
-  let phase = "idle"; // "idle" | "vanish" | "drop"
+  const START_PHASE = "await_start";
+  let phase = START_PHASE; // "await_start" | "idle" | "vanish" | "drop"
   let vanishMask = makeMask(false);
   let vanishStart = 0;
   let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (negative -> above target)
   let dropStart = 0;
 
-  initBoard();
-
   function updateSpeedFromSelect() {
     const v = (speedSelect && speedSelect.value) || "normal";
     speedMultiplier = v === "slow" ? 0.5 : v === "fast" ? 1.5 : 1;
   }
+  function updateThemeFromSelect() {
+    const t = (themeSelect && themeSelect.value) || "default";
+    COLORS = THEMES[t] || THEMES.default;
+  }
   // initialize from UI
   updateSpeedFromSelect();
+  updateThemeFromSelect();
+  if (themeSelect) {
+    themeSelect.addEventListener("change", () => {
+      updateThemeFromSelect();
+    });
+  }
 
   if (startBtn) {
     startBtn.addEventListener("click", () => {
       updateSpeedFromSelect();
+      updateThemeFromSelect();
       restart();
       canvas.focus();
     });
@@ -111,6 +133,7 @@ console.log("Static site loaded!");
   document.addEventListener("keydown", (e) => {
     if (e.key === "r" || e.key === "R") {
       updateSpeedFromSelect();
+      updateThemeFromSelect();
       restart();
       return;
     }
@@ -790,7 +813,16 @@ console.log("Static site loaded!");
     ctx.strokeRect(sx + TILE + 2, syRight + 2, TILE - 4, TILE - 4);
     ctx.lineWidth = 1;
 
-    if (gameOver) {
+    if (phase === START_PHASE) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 18px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10);
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 16);
+    } else if (gameOver) {
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
