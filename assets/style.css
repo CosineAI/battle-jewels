@@ -25,19 +25,19 @@ header {
 
 main {
   flex: 1 0 auto;
-  max-width: 750px;
+  max-width: 98vw;
   width: 100%;
-  margin: 2.2rem auto 0 auto;
+  margin: 0 auto;
   background: #fff;
-  padding: 2.8rem 2.2rem 2.4rem;
+  padding: 1rem;
   border-radius: 18px;
   box-shadow: 0 6px 32px 0 rgba(42,54,96,0.07), 0 1.5px 6px 0 rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 65vh;
+  justify-content: flex-start;
+  min-height: 100vh;
   position: relative;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 footer {
@@ -66,6 +66,7 @@ footer {
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  height: 100%;
 }
 
 .controls {
@@ -116,6 +117,9 @@ footer {
   border: 2px solid #222;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.15);
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 14;
 }
 
 .instructions {

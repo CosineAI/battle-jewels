@@ -41,6 +41,34 @@ console.log("Static site loaded!");
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
 
+  const gameContainer = document.querySelector(".game-container");
+  const controlsEl = document.querySelector(".controls");
+  const instructionsEl = document.querySelector(".instructions");
+
+  function resizeCanvasDisplay() {
+    const aspect = canvas.width / canvas.height;
+    const availW = (gameContainer?.clientWidth || window.innerWidth) - 4;
+    const usedH = (controlsEl?.offsetHeight || 0) + (instructionsEl?.offsetHeight || 0);
+    const availH = (gameContainer?.clientHeight || window.innerHeight) - usedH - 8;
+
+    let drawW = Math.min(availW, availH * aspect);
+    let drawH = drawW / aspect;
+    if (drawH > availH) {
+      drawH = availH;
+      drawW = drawH * aspect;
+    }
+
+    drawW = Math.max(200, Math.floor(drawW));
+    drawH = Math.max(200, Math.floor(drawH));
+
+    canvas.style.width = `${drawW}px`;
+    canvas.style.height = `${drawH}px`;
+  }
+
+  window.addEventListener("resize", resizeCanvasDisplay);
+  window.addEventListener("orientationchange", resizeCanvasDisplay);
+  resizeCanvasDisplay();
+
   let grid = createGrid();
   let riseOffset = 0;
   let gameOver = false;
