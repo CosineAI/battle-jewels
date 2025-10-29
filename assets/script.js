@@ -91,12 +91,15 @@ console.log("Static site loaded!");
         if (selRow < ROWS - 1) selRow++;
         break;
       case " ":
-      case "Enter":
+      case "Enter": {
+        // Map selector visual position to grid row under it, independent of rising
+        const rGrid = Math.max(0, Math.min(ROWS - 1, Math.floor((selRow * TILE + riseOffset) / TILE)));
         swapAndStartCycle(
-          { row: selRow, col: selCol },
-          { row: selRow, col: selCol + 1 }
+          { row: rGrid, col: selCol },
+          { row: rGrid, col: selCol + 1 }
         );
         break;
+      }
     }
   });
 
@@ -434,7 +437,7 @@ console.log("Static site loaded!");
 
     // Selection overlay
     const sx = selCol * TILE;
-    const sy = selRow * TILE - riseOffset;
+    const sy = selRow * TILE;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2;
     ctx.strokeRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
