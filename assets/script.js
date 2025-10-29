@@ -348,8 +348,8 @@ console.log("Static site loaded!");
     grid[ROWS - 1] = nextRow.slice();
     if (grid[0].some((v) => v !== null)) gameOver = true;
 
-    // Keep selector focused on the same tile content as rows shift up
-    if (selRow > 0) selRow--;
+    // Selector stays under player control; do not adjust it here.
+    // It will visually follow the blocks via riseOffset and drop animation.
 
     nextRow = makeRandomRow();
     startCascadeDropThenMatch();
@@ -439,13 +439,14 @@ console.log("Static site loaded!");
       ctx.stroke();
     }
 
-    // Selection overlay
+    // Selection overlay (follows block motion including drop animation)
     const sx = selCol * TILE;
-    const sy = selRow * TILE;
+    const syLeft = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol] || 0) * (1 - dropEase);
+    const syRight = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol + 1] || 0) * (1 - dropEase);
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2;
-    ctx.strokeRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
-    ctx.strokeRect(sx + TILE + 2, sy + 2, TILE - 4, TILE - 4);
+    ctx.strokeRect(sx + 2, syLeft + 2, TILE - 4, TILE - 4);
+    ctx.strokeRect(sx + TILE + 2, syRight + 2, TILE - 4, TILE - 4);
     ctx.lineWidth = 1;
 
     if (gameOver) {
