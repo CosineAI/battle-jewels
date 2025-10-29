@@ -38,13 +38,18 @@ console.log("Static site loaded!");
   const speedSelect = document.getElementById("speed");
   const startBtn = document.getElementById("startBtn");
   const themeSelect = document.getElementById("theme");
-  const controlSelect = document.getElementById("control");
+  const controlToggle = document.getElementById("controlToggle");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsModal = document.getElementById("settingsModal");
+  const settingsBackdrop = document.getElementById("settingsBackdrop");
+  const settingsClose = document.getElementById("settingsClose");
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
 
   const mainEl = document.querySelector("main");
-  const controlsEl = document.querySelector(".controls");
+  const topBarEl = document.querySelector(".top-bar");
+  const scoreBarEl = document.querySelector(".score-bar");
   const instructionsEl = document.querySelector(".instructions");
 
   function resizeCanvasDisplay() {
@@ -53,7 +58,8 @@ console.log("Static site loaded!");
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
-    const controlsH = controlsEl ? controlsEl.getBoundingClientRect().height : 0;
+    const topH = topBarEl ? topBarEl.getBoundingClientRect().height : 0;
+    const scoreH = scoreBarEl ? scoreBarEl.getBoundingClientRect().height : 0;
     const instrH = instructionsEl ? instructionsEl.getBoundingClientRect().height : 0;
 
     let padTop = 0, padBottom = 0;
@@ -64,7 +70,7 @@ console.log("Static site loaded!");
     }
 
     const availW = vw - 8;
-    const availH = vh - controlsH - instrH - padTop - padBottom - 8;
+    const availH = vh - topH - scoreH - instrH - padTop - padBottom - 8;
 
     let drawW = Math.min(availW, availH * aspect);
     let drawH = drawW / aspect;
@@ -127,26 +133,48 @@ console.log("Static site loaded!");
     COLORS = THEMES[t] || THEMES.default;
   }
   let controlMode = "keyboard";
-  function updateControlModeFromSelect() {
-    const v = (controlSelect && controlSelect.value) || "keyboard";
-    controlMode = v;
+  function setControlMode(mode) {
+    controlMode = mode;
+    if (controlToggle) {
+      controlToggle.textContent = controlMode === "keyboard" ? "Keyboard" : "Mouse/Touch";
+    }
   }
   // initialize from UI
   updateSpeedFromSelect();
   updateThemeFromSelect();
-  updateControlModeFromSelect();
+  setControlMode("keyboard");
   if (themeSelect) {
     themeSelect.addEventListener("change", updateThemeFromSelect);
   }
-  if (controlSelect) {
-    controlSelect.addEventListener("change", updateControlModeFromSelect);
+  if (controlToggle) {
+    controlToggle.addEventListener("click", () => {
+      setControlMode(controlMode === "keyboard" ? "pointer" : "keyboard");
+      resizeCanvasDisplay();
+    });
   }
+
+  // Settings modal
+  function openSettings() {
+    if (settingsModal) {
+      settingsModal.classList.add("open");
+      settingsModal.setAttribute("aria-hidden", "false");
+    }
+  }
+  function closeSettings() {
+    if (settingsModal) {
+      settingsModal.classList.remove("open");
+      settingsModal.setAttribute("aria-hidden", "true");
+    }
+    resizeCanvasDisplay();
+  }
+  if (settingsBtn) settingsBtn.addEventListener("click", openSettings);
+  if (settingsBackdrop) settingsBackdrop.addEventListener("click", closeSettings);
+  if (settingsClose) settingsClose.addEventListener("click", closeSettings);
 
   if (startBtn) {
     startBtn.addEventListener("click", () => {
       updateSpeedFromSelect();
       updateThemeFromSelect();
-      updateControlModeFromSelect();
       restart();
       canvas.focus();
     });

@@ -9,40 +9,56 @@
 <body>
   <main>
     <div class="game-container">
-      <div class="controls">
-        <label for="speed">Speed:</label>
-        <select id="speed">
-          <option value="slow">Slow</option>
-          <option value="normal" selected>Normal</option>
-          <option value="fast">Fast</option>
-        </select>
-        <label for="theme">Theme:</label>
-        <select id="theme">
-          <option value="default" selected>Default</option>
-          <option value="pastel">Pastel</option>
-          <option value="neon">Neon</option>
-          <option value="synthwave">Synthwave</option>
-          <option value="retro">Retro</option>
-          <option value="shooter">Modern Shooter</option>
-        </select>
-        <label for="control">Control:</label>
-        <select id="control">
-          <option value="keyboard" selected>Keyboard</option>
-          <option value="pointer">Mouse/Touch</option>
-        </select>
-        <button id="startBtn">New Game</button>
-        <div class="score">Score: <span id="scoreValue">0</span></div>
-        <div class="stats">PU: <span id="statsValue">O:0 R:0 C:0</span></div>
+      <div class="top-bar">
+        <button id="controlToggle" class="btn">Keyboard</button>
+        <div class="actions">
+          <button id="settingsBtn" class="btn">Settings</button>
+          <button id="startBtn" class="btn primary">New Game</button>
+        </div>
       </div>
+
+      <div class="score-bar">Score: <span id="scoreValue">0</span></div>
+
       <canvas id="game"></canvas>
+
       <details class="instructions" id="help">
         <summary>Help</summary>
         <div class="help-content">
           Swap adjacent tiles to make 3+ in a row or column. Mouse drag or arrows + space/enter.
           Blocks rise from the bottom. Game over when they reach the top.
-          Choose a speed and theme above and click New Game, or press R to restart with the selected settings.
+          Click New Game to start. Press R to restart with current settings.
         </div>
       </details>
+
+      <!-- Settings Modal -->
+      <div id="settingsModal" class="modal" aria-hidden="true">
+        <div class="modal-backdrop" id="settingsBackdrop"></div>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+          <h2 id="settingsTitle">Settings</h2>
+          <div class="form-row">
+            <label for="speed">Speed:</label>
+            <select id="speed">
+              <option value="slow">Slow</option>
+              <option value="normal" selected>Normal</option>
+              <option value="fast">Fast</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="theme">Theme:</label>
+            <select id="theme">
+              <option value="default" selected>Default</option>
+              <option value="pastel">Pastel</option>
+              <option value="neon">Neon</option>
+              <option value="synthwave">Synthwave</option>
+              <option value="retro">Retro</option>
+              <option value="shooter">Modern Shooter</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button id="settingsClose" class="btn">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
   <script src="assets/script.js"></script>
