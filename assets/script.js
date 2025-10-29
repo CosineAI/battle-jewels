@@ -388,6 +388,63 @@ console.log("Static site loaded!");
     ctx.strokeStyle = "#1d1f24";
     ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
 
+    // Shape overlay for visual differentiation
+    const inset = 8;
+    const r = TILE / 2 - inset;
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 2;
+
+    if (colorIdx === 0) {
+      // Triangle (upward)
+      const a0 = -Math.PI / 2;
+      const a1 = a0 + (2 * Math.PI) / 3;
+      const a2 = a0 + (4 * Math.PI) / 3;
+      ctx.beginPath();
+      ctx.moveTo(cx + r * Math.cos(a0), cy + r * Math.sin(a0));
+      ctx.lineTo(cx + r * Math.cos(a1), cy + r * Math.sin(a1));
+      ctx.lineTo(cx + r * Math.cos(a2), cy + r * Math.sin(a2));
+      ctx.closePath();
+      ctx.stroke();
+    } else if (colorIdx === 1) {
+      // Square
+      const s = r * Math.SQRT2;
+      ctx.strokeRect(cx - s / 2, cy - s / 2, s, s);
+    } else if (colorIdx === 2) {
+      // Star (5 points)
+      const outer = r;
+      const inner = r * 0.48;
+      const start = -Math.PI / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const ang = start + (i * Math.PI) / 5;
+        const rad = i % 2 === 0 ? outer : inner;
+        const px = cx + rad * Math.cos(ang);
+        const py = cy + rad * Math.sin(ang);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    } else if (colorIdx === 3) {
+      // Circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (colorIdx === 4) {
+      // Pentagon
+      const start = -Math.PI / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const ang = start + (i * 2 * Math.PI) / 5;
+        const px = cx + r * Math.cos(ang);
+        const py = cy + r * Math.sin(ang);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 
