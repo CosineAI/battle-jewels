@@ -545,22 +545,25 @@ console.log("Static site loaded!");
 
   function startCascadeDropThenMatch() {
     if (phase !== "idle") return;
-    // First, animate any necessary drops (gravity always applies)
+
+    // Check for matches immediately (match-before-drop)
+    const groups = findMatchGroups();
+    if (groups.length) {
+      startVanish(groups);
+      return;
+    }
+
+    // If no matches, apply gravity/drops
     if (prepareDropAnim()) {
       dropStart = performance.now();
       phase = "drop";
       return;
     }
-    // If no drops, check for matches
-    const groups = findMatchGroups();
-    if (groups.length) {
-      startVanish(groups);
-    } else {
-      // End chain with no matches
-      chainActive = false;
-      chainDepth = 0;
-      phase = "idle";
-    }
+
+    // End chain with no matches or drops
+    chainActive = false;
+    chainDepth = 0;
+    phase = "idle";
   }
 
   function startVanish(groups) {
@@ -655,6 +658,7 @@ console.log("Static site loaded!");
     // Clear swap state
     swapData = null;
     swapStart = 0;
+    phase = "idle";
 
     // Begin a new chain from player input
     chainActive = true;
