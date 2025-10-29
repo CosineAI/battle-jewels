@@ -29,6 +29,7 @@ console.log("Static site loaded!");
   // Animation timings
   const VANISH_MS = 220;
   const DROP_MS = 240;
+  const SWAP_MS = 160;
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -109,11 +110,13 @@ console.log("Static site loaded!");
 
   // Animation state
   const START_PHASE = "await_start";
-  let phase = START_PHASE; // "await_start" | "idle" | "vanish" | "drop"
+  let phase = START_PHASE; // "await_start" | "idle" | "swap" | "vanish" | "drop"
   let vanishMask = makeMask(false);
   let vanishStart = 0;
   let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (negative -> above target)
   let dropStart = 0;
+  let swapData = null; // { a:{row,col,val}, b:{row,col,val}, dir:+1|-1 }
+  let swapStart = 0;
 
   function updateSpeedFromSelect() {
     const v = (speedSelect && speedSelect.value) || "normal";
@@ -283,6 +286,10 @@ console.log("Static site loaded!");
       if (now - dropStart >= DROP_MS) {
         finishDrop();
       }
+    } else if (phase === "swap") {
+      if (now - swapStart >= SWAP_MS) {
+        finishSwap();
+      }
     }
 
     // Rise only when idle
@@ -424,80 +431,15 @@ console.log("Static site loaded!");
   }
 
   function swapAndStartCycle(a, b) {
-    const { row: r0, col: c0 } = a;
-    const { row: r1, col: c1 } = b;
-    const v0 = grid[r0][c0];
-    const v1 = grid[r1][c1];
-
-    // Perform swap
-    grid[r0][c0] = v1;
-    grid[r1][c1] = v0;
-
-    // Begin a new chain from player input
-    chainActive = true;
-    chainDepth = 0;
-
-    // Bomb activation: if swapped, blow row/column depending on bomb type
-    const bombGroups = [];
-    if (isBombRow(v0)) {
-      const cells = [];
-      for (let cc = 0; cc < COLS; cc++) {
-        if (grid[r1][cc] !== null) cells.push({ row: r1, col: cc });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
-    } else if (isBombCol(v0)) {
-      const cells = [];
-      for (let rr = 0; rr < ROWS; rr++) {
-        if (grid[rr][c1] !== null) cells.push({ row: rr, col: c1 });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
-    }
-    if (isBombRow(v1)) {
-      const cells = [];
-      for (let cc = 0; cc < COLS; cc++) {
-        if (grid[r0][cc] !== null) cells.push({ row: r0, col: cc });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
-    } else if (isBombCol(v1)) {
-      const cells = [];
-      for (let rr = 0; rr < ROWS; rr++) {
-        if (grid[rr][c0] !== null) cells.push({ row: rr, col: c0 });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
-    }
-    if (bombGroups.length) {
-      startVanish(bombGroups);
-      return;
-    }
-
-    // Orb activation: if swapped with a colored block, remove all of that color
-    let colorToClear = null;
-    let orbPos = null;
-    if (isOrb(v0) && isColor(v1)) {
-      colorToClear = v1;
-      orbPos = { row: r1, col: c1 };
-    } else if (isOrb(v1) && isColor(v0)) {
-      colorToClear = v0;
-      orbPos = { row: r0, col: c0 };
-    }
-
-    if (colorToClear !== null) {
-      const cells = [];
-      for (let rr = 0; rr < ROWS; rr++) {
-        for (let cc = 0; cc < COLS; cc++) {
-          if (grid[rr][cc] === colorToClear) {
-            cells.push({ row: rr, col: cc });
-          }
-        }
-      }
-      // Consume the orb itself
-      cells.push(orbPos);
-
-      startVanish([{ cells, length: cells.length, type: "orb" }]);
-      return;
-    }
-
-    startCascadeDropThenMatch();
+    if (phase !== "idle" || !a || !b || !isAdjacent(a, b)) return;
+    // Prepare swap animation
+    swapData = {
+      a: { row: a.row, col: a.col, val: grid[a.row][a.col] },
+      b: { row: b.row, col: b.col, val: grid[b.row][b.col] },
+      dir: Math.sign(b.col - a.col) || 0
+    };
+    swapStart = performance.now();
+    phase = "swap";
   }
 
   function findMatchGroups() {
@@ -670,6 +612,87 @@ console.log("Static site loaded!");
       chainDepth = 0;
       phase = "idle";
     }
+  }
+
+  function finishSwap() {
+    if (!swapData) { phase = "idle"; return; }
+    const { a, b } = swapData;
+    const v0 = a.val;
+    const v1 = b.val;
+
+    // Apply the swap to the grid
+    grid[a.row][a.col] = v1;
+    grid[b.row][b.col] = v0;
+
+    // Clear swap state
+    swapData = null;
+    swapStart = 0;
+
+    // Begin a new chain from player input
+    chainActive = true;
+    chainDepth = 0;
+
+    // Bomb activation post-swap
+    const bombGroups = [];
+    if (isBombRow(v0)) {
+      const cells = [];
+      for (let cc = 0; cc < COLS; cc++) {
+        if (grid[b.row][cc] !== null) cells.push({ row: b.row, col: cc });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
+    } else if (isBombCol(v0)) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (grid[rr][b.col] !== null) cells.push({ row: rr, col: b.col });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
+    }
+    if (isBombRow(v1)) {
+      const cells = [];
+      for (let cc = 0; cc < COLS; cc++) {
+        if (grid[a.row][cc] !== null) cells.push({ row: a.row, col: cc });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
+    } else if (isBombCol(v1)) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (grid[rr][a.col] !== null) cells.push({ row: rr, col: a.col });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
+    }
+    if (bombGroups.length) {
+      startVanish(bombGroups);
+      return;
+    }
+
+    // Orb activation post-swap
+    let colorToClear = null;
+    let orbPos = null;
+    if (isOrb(v0) && isColor(v1)) {
+      colorToClear = v1;
+      orbPos = { row: b.row, col: b.col };
+    } else if (isOrb(v1) && isColor(v0)) {
+      colorToClear = v0;
+      orbPos = { row: a.row, col: a.col };
+    }
+
+    if (colorToClear !== null) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        for (let cc = 0; cc < COLS; cc++) {
+          if (grid[rr][cc] === colorToClear) {
+            cells.push({ row: rr, col: cc });
+          }
+        }
+      }
+      // Consume the orb itself
+      cells.push(orbPos);
+
+      startVanish([{ cells, length: cells.length, type: "orb" }]);
+      return;
+    }
+
+    startCascadeDropThenMatch();
   }
 
   function pushRow() {
@@ -880,11 +903,18 @@ console.log("Static site loaded!");
     const dropEase = easeOutCubic(dropProgress);
     const vanishProgress = phase === "vanish" ? clamp01((now - vanishStart) / VANISH_MS) : 0;
 
-    // Existing grid
+    // Existing grid (skip tiles involved in a swap animation)
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const v = grid[r][c];
         if (v === null) continue;
+
+        // Skip the two tiles currently being animated in a swap
+        if (phase === "swap" && swapData &&
+            ((r === swapData.a.row && c === swapData.a.col) ||
+             (r === swapData.b.row && c === swapData.b.col))) {
+          continue;
+        }
 
         let y = r * TILE - riseOffset;
         if (y > canvas.height) continue;
@@ -905,6 +935,26 @@ console.log("Static site loaded!");
         } else {
           drawTile(x, y, v, 1, 1);
         }
+      }
+    }
+
+    // Swap animation overlay (draw moving tiles)
+    if (phase === "swap" && swapData) {
+      const p = clamp01((now - swapStart) / SWAP_MS);
+      const ease = easeOutCubic(p);
+      const dx = (swapData.dir || 0) * TILE * ease;
+
+      // Tile from A moves towards B
+      {
+        const x = swapData.a.col * TILE + dx;
+        const y = swapData.a.row * TILE - riseOffset;
+        drawTile(x, y, swapData.a.val);
+      }
+      // Tile from B moves towards A
+      {
+        const x = swapData.b.col * TILE - dx;
+        const y = swapData.b.row * TILE - riseOffset;
+        drawTile(x, y, swapData.b.val);
       }
     }
 
@@ -933,15 +983,17 @@ console.log("Static site loaded!");
       ctx.stroke();
     }
 
-    // Selection overlay (follows block motion including drop animation)
-    const sx = selCol * TILE;
-    const syLeft = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol] || 0) * (1 - dropEase);
-    const syRight = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol + 1] || 0) * (1 - dropEase);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(sx + 2, syLeft + 2, TILE - 4, TILE - 4);
-    ctx.strokeRect(sx + TILE + 2, syRight + 2, TILE - 4, TILE - 4);
-    ctx.lineWidth = 1;
+    // Selection overlay (only in keyboard mode; follows block motion including drop animation)
+    if (controlMode === "keyboard") {
+      const sx = selCol * TILE;
+      const syLeft = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol] || 0) * (1 - dropEase);
+      const syRight = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol + 1] || 0) * (1 - dropEase);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx + 2, syLeft + 2, TILE - 4, TILE - 4);
+      ctx.strokeRect(sx + TILE + 2, syRight + 2, TILE - 4, TILE - 4);
+      ctx.lineWidth = 1;
+    }
 
     if (phase === START_PHASE) {
       ctx.fillStyle = "rgba(0,0,0,0.55)";
