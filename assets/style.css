@@ -75,6 +75,7 @@ footer {
 }
 
 .stats {
+  display: none;
   font-weight: 600;
   color: #333;
   opacity: 0.8;
