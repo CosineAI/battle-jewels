@@ -33,6 +33,11 @@ console.log("Static site loaded!");
   let lastTime = 0;
   let gameFocused = false;
 
+  // Scoring
+  let score = 0;
+  let shownScore = 0;
+  const scoreEl = document.getElementById("scoreValue");
+
   // Animation state
   let phase = "idle"; // "idle" | "vanish" | "drop"
   let vanishMask = makeMask(false);
@@ -147,6 +152,13 @@ console.log("Static site loaded!");
       }
     }
 
+    // Score count-up animation
+    if (scoreEl && shownScore < score) {
+      const inc = Math.max(1, Math.floor(2000 * dt));
+      shownScore = Math.min(score, shownScore + inc);
+      scoreEl.textContent = shownScore.toLocaleString();
+    }
+
     draw();
     requestAnimationFrame(loop);
   }
@@ -160,6 +172,11 @@ console.log("Static site loaded!");
 
   function makeMask(fill = false) {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(fill));
+  }
+
+  const SCORE_TABLE = { 3: 500, 4: 1200, 5: 2500 };
+  function scoreFor(len) {
+    return len >= 5 ? SCORE_TABLE[5] : (SCORE_TABLE[len] || 0);
   }
 
   function clamp01(x) {
@@ -220,8 +237,8 @@ console.log("Static site loaded!");
     startCascadeDropThenMatch();
   }
 
-  function findMatches() {
-    const marked = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+  function findMatchGroups() {
+    const groups = [];
 
     // Horizontal
     for (let r = 0; r < ROWS; r++) {
@@ -235,7 +252,9 @@ console.log("Static site loaded!");
         let len = 1;
         while (c + len < COLS && grid[r][c + len] === color) len++;
         if (len >= 3) {
-          for (let k = 0; k < len; k++) marked[r][c + k] = true;
+          const cells = [];
+          for (let k = 0; k < len; k++) cells.push({ row: r, col: c + k });
+          groups.push({ cells, length: len, type: "h" });
         }
         c += len;
       }
@@ -253,19 +272,15 @@ console.log("Static site loaded!");
         let len = 1;
         while (r + len < ROWS && grid[r + len][c] === color) len++;
         if (len >= 3) {
-          for (let k = 0; k < len; k++) marked[r + k][c] = true;
+          const cells = [];
+          for (let k = 0; k < len; k++) cells.push({ row: r + k, col: c });
+          groups.push({ cells, length: len, type: "v" });
         }
         r += len;
       }
     }
 
-    const cells = [];
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (marked[r][c]) cells.push({ row: r, col: c });
-      }
-    }
-    return cells;
+    return groups;
   }
 
   // Computes gravity target positions, updates grid to target,
@@ -304,17 +319,24 @@ console.log("Static site loaded!");
       return;
     }
     // If no drops, check for matches
-    const matches = findMatches();
-    if (matches.length) {
-      startVanish(matches);
+    const groups = findMatchGroups();
+    if (groups.length) {
+      startVanish(groups);
     } else {
       phase = "idle";
     }
   }
 
-  function startVanish(matches) {
+  function startVanish(groups) {
     vanishMask = makeMask(false);
-    for (const m of matches) vanishMask[m.row][m.col] = true;
+    for (const g of groups) {
+      for (const cell of g.cells) vanishMask[cell.row][cell.col] = true;
+    }
+    // Award points for each group
+    let add = 0;
+    for (const g of groups) add += scoreFor(g.length);
+    score += add;
+
     vanishStart = performance.now();
     phase = "vanish";
   }
@@ -335,9 +357,9 @@ console.log("Static site loaded!");
       phase = "drop";
     } else {
       // If no drop needed, check if new matches appear (rare)
-      const matches = findMatches();
-      if (matches.length) {
-        startVanish(matches);
+      const groups = findMatchGroups();
+      if (groups.length) {
+        startVanish(groups);
       } else {
         phase = "idle";
       }
@@ -350,9 +372,9 @@ console.log("Static site loaded!");
     dropStart = 0;
 
     // After dropping, check for matches (cascades)
-    const matches = findMatches();
-    if (matches.length) {
-      startVanish(matches);
+    const groups = findMatchGroups();
+    if (groups.length) {
+      startVanish(groups);
     } else {
       phase = "idle";
     }
@@ -550,6 +572,11 @@ console.log("Static site loaded!");
     dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     dropStart = 0;
     phase = "idle";
+
+    // Reset score
+    score = 0;
+    shownScore = 0;
+    if (scoreEl) scoreEl.textContent = "0";
 
     initBoard();
   }
