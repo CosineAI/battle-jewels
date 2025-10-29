@@ -8,6 +8,9 @@ console.log("Static site loaded!");
   const COLORS = ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"];
   const BASE_RISE = TILE / 8; // baseline speed
   let speedMultiplier = 1; // slow:0.5, normal:1, fast:1.5
+  let progressMultiplier = 1; // gentle speed-up factor
+  const SPEEDUP_RATE = 0.005; // +0.5% per second while idle
+  const SPEEDUP_MAX = 2.5; // cap to prevent excessive speed
 
   // Animation timings
   const VANISH_MS = 220;
@@ -147,12 +150,19 @@ console.log("Static site loaded!");
 
     // Rise only when idle
     if (!gameOver && phase === "idle") {
-      riseOffset += BASE_RISE * speedMultiplier * dt;
+      // Gentle speed-up over time while rising
+      progressMultiplier = Math.min(SPEEDUP_MAX, progressMultiplier + SPEEDUP_RATE * dt);
+
+      riseOffset += BASE_RISE * speedMultiplier * progressMultiplier * dt;
       while (riseOffset >= TILE) {
         pushRow();
         riseOffset -= TILE;
       }
     }
+
+    draw();
+    requestAnimationFrame(loop);
+  }
 
     // Score count-up animation
     if (scoreEl && shownScore < score) {
@@ -611,6 +621,9 @@ console.log("Static site loaded!");
     score = 0;
     shownScore = 0;
     if (scoreEl) scoreEl.textContent = "0";
+
+    // Reset gentle speed-up
+    progressMultiplier = 1;
 
     initBoard();
   }
