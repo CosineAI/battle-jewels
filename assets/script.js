@@ -6,7 +6,8 @@ console.log("Static site loaded!");
   const COLS = 8;
   const ROWS = 14;
   const COLORS = ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"];
-  const RISE_SPEED = TILE / 8; // slowed by ~50%
+  const BASE_RISE = TILE / 8; // baseline speed
+  let speedMultiplier = 1; // slow:0.5, normal:1, fast:1.5
 
   // Animation timings
   const VANISH_MS = 220;
@@ -15,6 +16,9 @@ console.log("Static site loaded!");
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
   canvas.setAttribute("tabindex", "0"); // allow focus
+
+  const speedSelect = document.getElementById("speed");
+  const startBtn = document.getElementById("startBtn");
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
@@ -37,6 +41,21 @@ console.log("Static site loaded!");
   let dropStart = 0;
 
   initBoard();
+
+  function updateSpeedFromSelect() {
+    const v = (speedSelect && speedSelect.value) || "normal";
+    speedMultiplier = v === "slow" ? 0.5 : v === "fast" ? 1.5 : 1;
+  }
+  // initialize from UI
+  updateSpeedFromSelect();
+
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      updateSpeedFromSelect();
+      restart();
+      canvas.focus();
+    });
+  }
 
   // Input
   canvas.addEventListener("mousedown", (e) => {
@@ -69,6 +88,7 @@ console.log("Static site loaded!");
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "r" || e.key === "R") {
+      updateSpeedFromSelect();
       restart();
       return;
     }
@@ -120,7 +140,7 @@ console.log("Static site loaded!");
 
     // Rise only when idle
     if (!gameOver && phase === "idle") {
-      riseOffset += RISE_SPEED * dt;
+      riseOffset += BASE_RISE * speedMultiplier * dt;
       while (riseOffset >= TILE) {
         pushRow();
         riseOffset -= TILE;

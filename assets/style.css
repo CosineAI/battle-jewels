@@ -68,6 +68,41 @@ footer {
   gap: 14px;
 }
 
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls label {
+  font-weight: 600;
+  color: #333;
+}
+
+.controls select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #cfd4db;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #222;
+}
+
+.controls button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2b7cff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(43,124,255,0.28);
+}
+
+.controls button:hover {
+  background: #226be0;
+}
+
 #game {
   display: block;
   background: #0f1115;

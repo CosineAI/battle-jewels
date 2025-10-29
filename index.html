@@ -12,10 +12,20 @@
   </header>
   <main>
     <div class="game-container">
+      <div class="controls">
+        <label for="speed">Speed:</label>
+        <select id="speed">
+          <option value="slow">Slow</option>
+          <option value="normal" selected>Normal</option>
+          <option value="fast">Fast</option>
+        </select>
+        <button id="startBtn">New Game</button>
+      </div>
       <canvas id="game"></canvas>
       <p class="instructions">
         Swap adjacent tiles to make 3+ in a row or column. Mouse drag or arrows + space/enter.
-        Blocks rise from the bottom. Game over when they reach the top. Press R to restart.
+        Blocks rise from the bottom. Game over when they reach the top.
+        Choose a speed above and click New Game, or press R to restart with the selected speed.
       </p>
     </div>
   </main>
