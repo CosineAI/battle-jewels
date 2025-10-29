@@ -10,6 +10,7 @@ console.log("Static site loaded!");
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
+  canvas.setAttribute("tabindex", "0"); // allow focus
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
@@ -22,6 +23,7 @@ console.log("Static site loaded!");
   let selCol = Math.max(0, Math.floor(COLS / 2) - 1);
   let dragStart = null;
   let lastTime = 0;
+  let gameFocused = false;
 
   initBoard();
 
@@ -41,10 +43,27 @@ console.log("Static site loaded!");
     dragStart = null;
   });
 
+  // Focus and scroll control
+  canvas.addEventListener("focus", () => { gameFocused = true; });
+  canvas.addEventListener("blur", () => { gameFocused = false; });
+  canvas.addEventListener("mouseenter", () => { gameFocused = true; });
+  canvas.addEventListener("mouseleave", () => { gameFocused = false; });
+  canvas.addEventListener("pointerdown", () => { gameFocused = true; });
+  window.addEventListener("wheel", (e) => {
+    if (gameFocused) e.preventDefault();
+  }, { passive: false });
+  window.addEventListener("touchmove", (e) => {
+    if (gameFocused) e.preventDefault();
+  }, { passive: false });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "r" || e.key === "R") {
       restart();
       return;
+    }
+    if (gameFocused) {
+      const blockKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Space", "Spacebar"];
+      if (blockKeys.includes(e.key)) e.preventDefault();
     }
     if (gameOver) return;
     switch (e.key) {
@@ -210,10 +229,10 @@ console.log("Static site loaded!");
 
   function resolve() {
     for (;;) {
+      applyGravity(); // ensure blocks always drop, even if no matches
       const matches = findMatches();
       if (!matches.length) break;
       for (const m of matches) grid[m.row][m.col] = null;
-      applyGravity();
     }
   }
 
