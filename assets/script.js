@@ -7,6 +7,8 @@ console.log("Static site loaded!");
   const ROWS = 14;
   const COLORS = ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"];
   const ORB = -1; // special power-up tile
+  const BOMB_ROW = -2; // row bomb
+  const BOMB_COL = -3; // column bomb
   const BASE_RISE = TILE / 8; // baseline speed
   let speedMultiplier = 1; // slow:0.5, normal:1, fast:1.5
   let progressMultiplier = 1; // gentle speed-up factor
@@ -192,7 +194,10 @@ console.log("Static site loaded!");
   }
 
   function isOrb(v) { return v === ORB; }
-  function isColor(v) { return typeof v === "number" && v >= 0; }
+  function isBombRow(v) { return v === BOMB_ROW; }
+  function isBombCol(v) { return v === BOMB_COL; }
+  function isSpecial(v) { return typeof v === "number" &&  <v 0; }
+  function is}
 
   function clamp01(x) {
     return Math.max(0, Math.min(1, x));
@@ -209,10 +214,11 @@ console.log("Static site loaded!");
 
   function makeRandomRow() {
     const row = Array.from({ length: COLS }, () => randomInt(COLORS.length));
-    // 2% chance to generate a powerup orb in the new row
-    if (Math.random() < 0.02) {
-      const pos = randomInt(COLS);
-      row[pos] = ORB;
+    const r = Math.random();
+    if (r < 0.02) {
+      row[randomInt(COLS)] = ORB;
+    } else if (r < 0.03) {
+      row[randomInt(COLS)] = Math.random() < 0.5 ? BOMB_ROW : BOMB_COL;
     }
     return row;
   }
@@ -263,6 +269,39 @@ console.log("Static site loaded!");
     chainActive = true;
     chainDepth = 0;
 
+    // Bomb activation: if swapped, blow row/column depending on bomb type
+    const bombGroups = [];
+    if (isBombRow(v0)) {
+      const cells = [];
+      for (let cc = 0; cc < COLS; cc++) {
+        if (grid[r1][cc] !== null) cells.push({ row: r1, col: cc });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
+    } else if (isBombCol(v0)) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (grid[rr][c1] !== null) cells.push({ row: rr, col: c1 });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
+    }
+    if (isBombRow(v1)) {
+      const cells = [];
+      for (let cc = 0; cc < COLS; cc++) {
+        if (grid[r0][cc] !== null) cells.push({ row: r0, col: cc });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
+    } else if (isBombCol(v1)) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (grid[rr][c0] !== null) cells.push({ row: rr, col: c0 });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
+    }
+    if (bombGroups.length) {
+      startVanish(bombGroups);
+      return;
+    }
+
     // Orb activation: if swapped with a colored block, remove all of that color
     let colorToClear = null;
     let orbPos = null;
@@ -301,7 +340,7 @@ console.log("Static site loaded!");
       let c = 0;
       while (c < COLS) {
         const color = grid[r][c];
-        if (color === null || color === ORB) {
+        if (!isColor(color)) {
           c++;
           continue;
         }
@@ -321,7 +360,7 @@ console.log("Static site loaded!");
       let r = 0;
       while (r < ROWS) {
         const color = grid[r][c];
-        if (color === null || color === ORB) {
+        if (!isColor(color)) {
           r++;
           continue;
         }
@@ -392,9 +431,9 @@ console.log("Static site loaded!");
       for (const cell of g.cells) vanishMask[cell.row][cell.col] = true;
     }
 
-    // For any 5+ match (not orb-triggered), spawn an orb at the group's center cell and don't vanish it
+    // Spawn an orb only for natural 5+ matches (horizontal/vertical)
     for (const g of groups) {
-      if (g.type !== "orb" && g.length >= 5) {
+      if ((g.type === "h" || g.type === "v") && g.length >= 5) {
         const spawn = g.cells[Math.floor(g.length / 2)];
         grid[spawn.row][spawn.col] = ORB;
         vanishMask[spawn.row][spawn.col] = false; // preserve the orb
@@ -520,6 +559,85 @@ console.log("Static site loaded!");
       return;
     }
 
+    if (colorIdx === BOMB_ROW || colorIdx === BOMB_COL) {
+      // Base tile
+      ctx.fillStyle = "#1a1e26";
+      ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+
+      // Bomb body
+      const rb = TILE / 2 - 9;
+      ctx.fillStyle = "#0b0d12";
+      ctx.beginPath();
+      ctx.arc(cx, cy + 2, rb, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gloss
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.beginPath();
+      ctx.arc(cx - 6, cy - 4, rb * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Fuse
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - rb - 2);
+      ctx.quadraticCurveTo(cx + 4, cy - rb - 8, cx + 8, cy - rb - 4);
+      ctx.stroke();
+
+      // Arrow overlay
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 2.2;
+      if (colorIdx === BOMB_ROW) {
+        // Left-right arrow
+        const ay = cy;
+        const ax0 = x + 8;
+        const ax1 = x + TILE - 8;
+        ctx.beginPath();
+        ctx.moveTo(ax0, ay);
+        ctx.lineTo(ax1, ay);
+        ctx.stroke();
+        // Arrowheads
+        ctx.beginPath();
+        ctx.moveTo(ax0, ay);
+        ctx.lineTo(ax0 + 6, ay - 6);
+        ctx.lineTo(ax0 + 6, ay + 6);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(ax1, ay);
+        ctx.lineTo(ax1 - 6, ay - 6);
+        ctx.lineTo(ax1 - 6, ay + 6);
+        ctx.closePath();
+        ctx.stroke();
+      } else {
+        // Up-down arrow
+        const ax = cx;
+        const ay0 = y + 8;
+        const ay1 = y + TILE - 8;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay0);
+        ctx.lineTo(ax, ay1);
+        ctx.stroke();
+        // Arrowheads
+        ctx.beginPath();
+        ctx.moveTo(ax, ay0);
+        ctx.lineTo(ax - 6, ay0 + 6);
+        ctx.lineTo(ax + 6, ay0 + 6);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(ax, ay1);
+        ctx.lineTo(ax - 6, ay1 - 6);
+        ctx.lineTo(ax + 6, ay1 - 6);
+        ctx.closePath();
+        ctx.stroke();
+      }
+
+      ctx.restore();
+      return;
+    }
+
     const color = COLORS[colorIdx];
 
     ctx.fillStyle = color;
@@ -534,7 +652,6 @@ console.log("Static site loaded!");
     ctx.lineWidth = 2;
 
     if (colorIdx === 0) {
-      // Triangle (upward)
       const a0 = -Math.PI / 2;
       const a1 = a0 + (2 * Math.PI) / 3;
       const a2 = a0 + (4 * Math.PI) / 3;
@@ -545,11 +662,9 @@ console.log("Static site loaded!");
       ctx.closePath();
       ctx.stroke();
     } else if (colorIdx === 1) {
-      // Square
       const s = r * Math.SQRT2;
       ctx.strokeRect(cx - s / 2, cy - s / 2, s, s);
     } else if (colorIdx === 2) {
-      // Star (5 points)
       const outer = r;
       const inner = r * 0.48;
       const start = -Math.PI / 2;
@@ -565,12 +680,10 @@ console.log("Static site loaded!");
       ctx.closePath();
       ctx.stroke();
     } else if (colorIdx === 3) {
-      // Circle
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
     } else if (colorIdx === 4) {
-      // Pentagon
       const start = -Math.PI / 2;
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
