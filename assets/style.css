@@ -124,9 +124,17 @@ footer {
 
 .instructions {
   margin: 0;
+  text-align: center;
+}
+.instructions summary {
+  cursor: pointer;
+  color: #2b7cff;
+  font-weight: 600;
+}
+.instructions .help-content {
   color: #555;
   font-size: 0.95rem;
-  text-align: center;
+  margin-top: 6px;
 }
 
 .score {

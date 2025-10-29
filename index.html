@@ -30,11 +30,14 @@
         <div class="stats">PU: <span id="statsValue">O:0 R:0 C:0</span></div>
       </div>
       <canvas id="game"></canvas>
-      <p class="instructions">
-        Swap adjacent tiles to make 3+ in a row or column. Mouse drag or arrows + space/enter.
-        Blocks rise from the bottom. Game over when they reach the top.
-        Choose a speed and theme above and click New Game, or press R to restart with the selected settings.
-      </p>
+      <details class="instructions" id="help">
+        <summary>Help</summary>
+        <div class="help-content">
+          Swap adjacent tiles to make 3+ in a row or column. Mouse drag or arrows + space/enter.
+          Blocks rise from the bottom. Game over when they reach the top.
+          Choose a speed and theme above and click New Game, or press R to restart with the selected settings.
+        </div>
+      </details>
     </div>
   </main>
   <script src="assets/script.js"></script>
