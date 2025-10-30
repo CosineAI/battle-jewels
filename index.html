@@ -3,14 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Puzzle League Clone</title>
+  <title>Candy Puzzle League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Micro+5&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <main>
     <div class="game-container">
       <div class="top-bar">
-        <button id="controlToggle" class="btn">Keyboard</button>
+        <div class="left-controls">
+          <button id="musicToggle" class="btn icon-btn" aria-pressed="true" aria-label="Toggle music" title="Music">🔊</button>
+          <button id="sfxToggle" class="btn icon-btn" aria-pressed="true" aria-label="Toggle sound effects" title="SFX">🔔</button>
+          <button id="controlToggle" class="btn">Mouse/Touch</button>
+        </div>
         <div class="actions">
           <button id="settingsBtn" class="btn">Settings</button>
           <button id="startBtn" class="btn primary">New Game</button>

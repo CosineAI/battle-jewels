@@ -8,12 +8,17 @@ html, body {
 
 body {
   height: 100vh;
-  font-family: system-ui, sans-serif;
+  font-family: 'Micro 5', sans-serif;
   margin: 0;
-  background: linear-gradient(120deg, #f8fafc 70%, #e7eaf2 100%);
+  background: url('pixelated.png') center center / cover no-repeat;
   color: #222;
   display: flex;
   flex-direction: column;
+}
+
+/* Ensure form controls use the site font */
+button, input, select, textarea, option {
+  font-family: inherit;
 }
 
 header {
@@ -27,13 +32,14 @@ header {
 
 main {
   flex: 1 0 auto;
-  max-width: 98vw;
   width: 100%;
+  max-width: calc(100vw - 2rem); /* account for 1rem padding on each side */
+  box-sizing: border-box; /* include padding in width calc */
   margin: 0 auto;
-  background: #fff;
+  background: none;
   padding: 1rem;
-  border-radius: 18px;
-  box-shadow: 0 6px 32px 0 rgba(42,54,96,0.07), 0 1.5px 6px 0 rgba(0,0,0,0.03);
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -76,11 +82,53 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap; /* allow wrapping to prevent overflow */
+  row-gap: 8px;
+}
+
+.left-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #333;
+  user-select: none;
+}
+
+/* Icon buttons for Music / SFX */
+.icon-btn {
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit;
+  line-height: 1;
+}
+
+.icon-btn[aria-pressed="false"] {
+  background: #94a3b8;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .top-bar .actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .score-bar {
@@ -88,6 +136,8 @@ footer {
   text-align: center;
   font-weight: 700;
   color: #222;
+  font-size: 3rem;
+  line-height: 1.1;
 }
 
 .controls {
@@ -122,24 +172,81 @@ footer {
 .top-bar button,
 .modal-actions button {
   padding: 6px 12px;
-  border-radius: 8px;
-  border: none;
+  border-radius: 0; /* pixel edges */
+  border: 3px solid #1a1e26; /* crisp 8-bit outline */
   background: #2b7cff;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(43,124,255,0.28);
+  box-shadow: none; /* remove soft glow */
+  /* notch the corners for a pixel look */
+  clip-path: polygon(
+    0 6px,
+    6px 0,
+    calc(100% - 6px) 0,
+    100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    6px 100%,
+    0 calc(100% - 6px)
+  );
 }
 
-.controls button:hover,
-.top-bar button:hover,
-.modal-actions button:hover {
-  background: #226be0;
+/* Ensure all top bar buttons are the same height */
+.top-bar .btn {
+  height: 3.5rem;
+  min-height: 3.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 2rem; /* uniform top-bar button size */
+  line-height: 1;
+  padding: 0 1rem;
+}
+/* Match icon buttons' font-size with other top-bar buttons */
+.top-bar .icon-btn {
+  font-size: 2rem;
+}
+/* Make primary button same font size as others on large screens */
+.top-bar .btn.primary {
+  font-size: 2rem;
+}
+
+/* Responsive sizing for smaller viewports (sm) */
+@media (max-width: 767px) {
+  .top-bar .btn {
+    font-size: 1rem;
+    height: 3rem;
+    min-height: 3rem;
+    padding: 0 0.75rem;
+  }
+  .top-bar .btn.primary {
+    font-size: 1rem; /* keep primary same size on small screens */
+  }
+  .top-bar .icon-btn {
+    font-size: 1rem; /* match icon buttons to text buttons on small screens */
+    width: 3rem;
+    height: 3rem;
+  }
+  .left-controls,
+  .top-bar .actions {
+    gap: 6px;
+  }
+
+  /* Settings modal font size on small screens */
+  .modal-content h2,
+  .modal-content label,
+  .modal-content select,
+  .modal-actions .btn {
+    font-size: 2rem;
+  }
 }
 
 #game {
   display: block;
-  background: #0f1115;
+  background: transparent;
+  opacity: 0.92; /* slight transparency to reveal bg */
   border: 2px solid #222;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.15);
@@ -177,7 +284,7 @@ footer {
 }
 .modal-content h2 {
   margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+  font-size: 3rem;
 }
 .modal-content .form-row {
   display: flex;
@@ -189,13 +296,14 @@ footer {
 .modal-content label {
   font-weight: 600;
   color: #333;
+  font-size: 3rem;
 }
 .modal-content select {
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid #cfd4db;
   background: #fff;
-  font-size: 0.95rem;
+  font-size: 3rem;
   color: #222;
 }
 .modal-actions {

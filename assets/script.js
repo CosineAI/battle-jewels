@@ -43,6 +43,90 @@ console.log("Static site loaded!");
   const settingsModal = document.getElementById("settingsModal");
   const settingsBackdrop = document.getElementById("settingsBackdrop");
   const settingsClose = document.getElementById("settingsClose");
+  const musicToggle = document.getElementById("musicToggle");
+  const sfxToggle = document.getElementById("sfxToggle");
+
+  // Audio
+  const audioBG = new Audio("assets/music/puzzle-league-bg.mp3");
+  const audioBonus = new Audio("assets/music/bonus.mp3");
+  const audioOver = new Audio("assets/music/game-over.mp3");
+
+  audioBG.preload = "auto";
+  audioBonus.preload = "auto";
+  audioOver.preload = "auto";
+
+  audioBG.loop = true;
+  audioBG.addEventListener("ended", () => {
+    // Fallback loop for browsers that ignore .loop on programmatically created audio
+    try {
+      audioBG.currentTime = 0;
+      if (musicEnabled) audioBG.play();
+    } catch {}
+  });
+
+  let musicEnabled = true;
+  let sfxEnabled = true;
+
+  function updateAudioButtonsUI() {
+    if (musicToggle) {
+      musicToggle.textContent = musicEnabled ? "🔊" : "🔇";
+      musicToggle.setAttribute("aria-pressed", musicEnabled ? "true" : "false");
+      musicToggle.setAttribute("aria-label", musicEnabled ? "Music On" : "Music Off");
+      musicToggle.title = musicEnabled ? "Music On" : "Music Off";
+    }
+    if (sfxToggle) {
+      sfxToggle.textContent = sfxEnabled ? "🔔" : "🔕";
+      sfxToggle.setAttribute("aria-pressed", sfxEnabled ? "true" : "false");
+      sfxToggle.setAttribute("aria-label", sfxEnabled ? "SFX On" : "SFX Off");
+      sfxToggle.title = sfxEnabled ? "SFX On" : "SFX Off";
+    }
+  }
+
+  let startEndedHandler = null;
+  function primeBGPlayback() {
+    try {
+      const p = audioBG.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          audioBG.pause();
+          audioBG.currentTime = 0;
+        }).catch(() => {});
+      }
+    } catch {}
+  }
+
+  function stopMusic() {
+    audioBG.pause();
+    audioBG.currentTime = 0;
+  }
+  function playMusicLoop() {
+    if (!musicEnabled) return;
+    audioBG.currentTime = 0;
+    audioBG.play().catch(() => {});
+  }
+  function playGameStartThenLoop() {
+    // Now starts background music immediately (no start jingle)
+    stopMusic();
+    if (!musicEnabled) return;
+    playMusicLoop();
+  }
+  function playBonus() {
+    if (!sfxEnabled) return;
+    audioBonus.currentTime = 0;
+    audioBonus.play().catch(() => {});
+  }
+  function playGameOver() {
+    if (!sfxEnabled) return;
+    audioOver.currentTime = 0;
+    audioOver.play().catch(() => {});
+  }
+
+  function onGameOverTriggered() {
+    if (gameOverSoundPlayed) return;
+    stopMusic();
+    playGameOver();
+    gameOverSoundPlayed = true;
+  }
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
@@ -90,6 +174,7 @@ console.log("Static site loaded!");
   let grid = createGrid();
   let riseOffset = 0;
   let gameOver = false;
+  let gameOverSoundPlayed = false;
   let nextRow = makeRandomRow();
   let selRow = ROWS - 4;
   let selCol = Math.max(0, Math.floor(COLS / 2) - 1);
@@ -142,7 +227,7 @@ console.log("Static site loaded!");
   // initialize from UI
   updateSpeedFromSelect();
   updateThemeFromSelect();
-  setControlMode("keyboard");
+  setControlMode("pointer");
   if (themeSelect) {
     themeSelect.addEventListener("change", updateThemeFromSelect);
   }
@@ -152,6 +237,26 @@ console.log("Static site loaded!");
       resizeCanvasDisplay();
     });
   }
+
+  if (musicToggle) {
+    musicToggle.addEventListener("click", () => {
+      musicEnabled = !musicEnabled;
+      if (!musicEnabled) {
+        stopMusic();
+      } else if (!gameOver && phase !== START_PHASE) {
+        playMusicLoop();
+      }
+      updateAudioButtonsUI();
+    });
+  }
+  if (sfxToggle) {
+    sfxToggle.addEventListener("click", () => {
+      sfxEnabled = !sfxEnabled;
+      updateAudioButtonsUI();
+    });
+  }
+
+  updateAudioButtonsUI();
 
   // Settings modal
   function openSettings() {
@@ -176,6 +281,7 @@ console.log("Static site loaded!");
       updateSpeedFromSelect();
       updateThemeFromSelect();
       restart();
+      playGameStartThenLoop();
       canvas.focus();
     });
   }
@@ -267,6 +373,7 @@ console.log("Static site loaded!");
       updateSpeedFromSelect();
       updateThemeFromSelect();
       restart();
+      playGameStartThenLoop();
       return;
     }
     if (controlMode !== "keyboard") return;
@@ -331,7 +438,11 @@ console.log("Static site loaded!");
         riseOffset -= TILE;
       }
     }
-
+    
+    if (gameOver) {
+      onGameOverTriggered();
+    }
+    
     // Score count-up animation
     if (scoreEl && shownScore < score) {
       const inc = Math.max(1, Math.floor(2000 * dt));
@@ -567,6 +678,7 @@ console.log("Static site loaded!");
   }
 
   function startVanish(groups) {
+    playBonus();
     vanishMask = makeMask(false);
     for (const g of groups) {
       for (const cell of g.cells) vanishMask[cell.row][cell.col] = true;
@@ -728,11 +840,15 @@ console.log("Static site loaded!");
   }
 
   function pushRow() {
+    const wasGameOver = gameOver;
     for (let r = 0; r < ROWS - 1; r++) {
       grid[r] = grid[r + 1].slice();
     }
     grid[ROWS - 1] = nextRow.slice();
     if (grid[0].some((v) => v !== null)) gameOver = true;
+    if (!wasGameOver && gameOver) {
+      onGameOverTriggered();
+    }
 
     // Keep the selector attached to the same block content across a push
     if (selRow > 0) selRow--;
@@ -1031,19 +1147,58 @@ console.log("Static site loaded!");
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 18px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = "13px system-ui, sans-serif";
-      ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 16);
+      ctx.font = "bold 48px 'Micro 5', sans-serif";
+
+      // Helper to wrap and center text within the canvas
+      const drawWrappedCentered = (text, centerX, centerY, maxWidth, lineHeight) => {
+        const prevBaseline = ctx.textBaseline;
+        ctx.textBaseline = "top";
+        const words = text.split(/\s+/);
+        const lines = [];
+        let line = "";
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line ? line + " " + words[i] : words[i];
+          const w = ctx.measureText(testLine).width;
+          if (w > maxWidth && line) {
+            lines.push(line);
+            line = words[i];
+          } else {
+            line = testLine;
+          }
+        }
+        if (line) lines.push(line);
+
+        const totalH = lines.length * lineHeight;
+        let y = centerY - totalH / 2;
+        for (const l of lines) {
+          ctx.fillText(l, centerX, y);
+          y += lineHeight;
+        }
+        ctx.textBaseline = prevBaseline;
+        return y; // return position just after the last line
+      };
+
+      // Draw wrapped headline (3rem ~ 48px)
+      const afterHeadlineY = drawWrappedCentered(
+        "Press New Game to begin",
+        canvas.width / 2,
+        canvas.height / 2 - 10,
+        canvas.width * 0.9,
+        54
+      );
+
+      // Secondary line with extra spacing under the headline
+      ctx.font = "13px 'Micro 5', sans-serif";
+      ctx.fillText("Choose speed and theme above", canvas.width / 2, afterHeadlineY + 20);
     } else if (gameOver) {
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 20px system-ui, sans-serif";
+      ctx.font = "bold 40px 'Micro 5', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 8);
-      ctx.font = "14px system-ui, sans-serif";
+      ctx.font = "28px 'Micro 5', sans-serif";
       ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 18);
     }
   }
@@ -1052,6 +1207,7 @@ console.log("Static site loaded!");
     grid = createGrid();
     riseOffset = 0;
     gameOver = false;
+    gameOverSoundPlayed = false;
     nextRow = makeRandomRow();
 
     selRow = ROWS - 4;
