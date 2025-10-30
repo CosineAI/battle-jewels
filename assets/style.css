@@ -8,7 +8,7 @@ html, body {
 
 body {
   height: 100vh;
-  font-family: system-ui, sans-serif;
+  font-family: 'Pixelify Sans', sans-serif;
   margin: 0;
   background: linear-gradient(120deg, #f8fafc 70%, #e7eaf2 100%);
   color: #222;

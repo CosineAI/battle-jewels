@@ -1147,19 +1147,19 @@ console.log("Static site loaded!");
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 18px system-ui, sans-serif";
+      ctx.font = "bold 18px 'Pixelify Sans', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = "13px system-ui, sans-serif";
+      ctx.font = "13px 'Pixelify Sans', sans-serif";
       ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 16);
     } else if (gameOver) {
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 20px system-ui, sans-serif";
+      ctx.font = "bold 20px 'Pixelify Sans', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 8);
-      ctx.font = "14px system-ui, sans-serif";
+      ctx.font = "14px 'Pixelify Sans', sans-serif";
       ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 18);
     }
   }
