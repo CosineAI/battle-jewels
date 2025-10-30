@@ -10,7 +10,7 @@ body {
   height: 100vh;
   font-family: 'Pixelify Sans', sans-serif;
   margin: 0;
-  background: url('candy_world.png') center center / cover no-repeat;
+  background: url('pixelated.png') center center / cover no-repeat;
   color: #222;
   display: flex;
   flex-direction: column;
