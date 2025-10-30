@@ -16,6 +16,11 @@ body {
   flex-direction: column;
 }
 
+/* Ensure form controls use the site font */
+button, input, select, textarea, option {
+  font-family: inherit;
+}
+
 header {
   background: #23272f;
   color: #fff;
