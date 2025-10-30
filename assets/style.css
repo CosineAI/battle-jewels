@@ -131,6 +131,8 @@ footer {
   text-align: center;
   font-weight: 700;
   color: #222;
+  font-size: 3rem;
+  line-height: 1.1;
 }
 
 .controls {
@@ -200,6 +202,10 @@ footer {
 .top-bar .btn.primary {
   font-size: 3rem; /* larger size for the primary action (New Game) */
 }
+
+/* Responsive sizing for smaller viewports */
+@media (max-width: 1024px) {
+ }
 
 .controls button:hover,
 .top-bar button:hover,
