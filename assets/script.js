@@ -1147,11 +1147,43 @@ console.log("Static site loaded!");
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 48px 'Micro 5', sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = "13px 'Micro 5', sans-serifnewrif";
-      ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 16);
+      ctx.font = "bold 48px 'Micro 5', sans-serif";
+
+      // Helper to wrap and center text within the canvas
+      const drawWrappedCentered = (text, centerX, centerY, maxWidth, lineHeight) => {
+        const prevBaseline = ctx.textBaseline;
+        ctx.textBaseline = "top";
+        const words = text.split(/\s+/);
+        const lines = [];
+        let line = "";
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line ? line + " " + words[i] : words[i];
+          const w = ctx.measureText(testLine).width;
+          if (w > maxWidth && line) {
+            lines.push(line);
+            line = words[i];
+          } else {
+            line = testLine;
+          }
+        }
+        if (line) lines.push(line);
+
+        const totalH = lines.length * lineHeight;
+        let y = centerY - totalH / 2;
+        for (const l of lines) {
+          ctx.fillText(l, centerX, y);
+          y += lineHeight;
+        }
+        ctx.textBaseline = prevBaseline;
+      };
+
+      // Draw wrapped headline (3rem ~ 48px)
+      drawWrappedCentered("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10, canvas.width * 0.9, 54);
+
+      // Secondary line
+      ctx.font = "13px 'Micro 5', sans-serif";
+      ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 36);
     } else if (gameOver) {
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
