@@ -78,6 +78,21 @@ footer {
   justify-content: space-between;
 }
 
+.left-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #333;
+  user-select: none;
+}
+
 .top-bar .actions {
   display: flex;
   gap: 10px;

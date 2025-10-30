@@ -10,7 +10,11 @@
   <main>
     <div class="game-container">
       <div class="top-bar">
-        <button id="controlToggle" class="btn">Keyboard</button>
+        <div class="left-controls">
+          <label class="toggle"><input type="checkbox" id="musicToggle" checked> Music</label>
+          <label class="toggle"><input type="checkbox" id="sfxToggle" checked> SFX</label>
+          <button id="controlToggle" class="btn">Mouse/Touch</button>
+        </div>
         <div class="actions">
           <button id="settingsBtn" class="btn">Settings</button>
           <button id="startBtn" class="btn primary">New Game</button>

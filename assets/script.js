@@ -43,6 +43,52 @@ console.log("Static site loaded!");
   const settingsModal = document.getElementById("settingsModal");
   const settingsBackdrop = document.getElementById("settingsBackdrop");
   const settingsClose = document.getElementById("settingsClose");
+  const musicToggle = document.getElementById("musicToggle");
+  const sfxToggle = document.getElementById("sfxToggle");
+
+  // Audio
+  const audioStart = new Audio("assets/music/game-start.mp3");
+  const audioBG = new Audio("assets/music/puzzle-league-bg.mp3");
+  const audioBonus = new Audio("assets/music/bonus.mp3");
+  const audioOver = new Audio("assets/music/game-over.mp3");
+  audioBG.loop = true;
+
+  let musicEnabled = musicToggle ? musicToggle.checked : true;
+  let sfxEnabled = sfxToggle ? sfxToggle.checked : true;
+
+  function stopMusic() {
+    audioStart.pause();
+    audioStart.currentTime = 0;
+    audioBG.pause();
+    audioBG.currentTime = 0;
+  }
+  function playMusicLoop() {
+    if (!musicEnabled) return;
+    audioBG.currentTime = 0;
+    audioBG.play().catch(() => {});
+  }
+  function playGameStartThenLoop() {
+    stopMusic();
+    if (!musicEnabled) return;
+    audioStart.currentTime = 0;
+    audioStart.onended = () => {
+      if (!musicEnabled) return;
+      playMusicLoop();
+    };
+    audioStart.play().catch(() => {
+      playMusicLoop();
+    });
+  }
+  function playBonus() {
+    if (!sfxEnabled) return;
+    audioBonus.currentTime = 0;
+    audioBonus.play().catch(() => {});
+  }
+  function playGameOver() {
+    if (!sfxEnabled) return;
+    audioOver.currentTime = 0;
+    audioOver.play().catch(() => {});
+  }
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
@@ -142,7 +188,7 @@ console.log("Static site loaded!");
   // initialize from UI
   updateSpeedFromSelect();
   updateThemeFromSelect();
-  setControlMode("keyboard");
+  setControlMode("pointer");
   if (themeSelect) {
     themeSelect.addEventListener("change", updateThemeFromSelect);
   }
@@ -150,6 +196,24 @@ console.log("Static site loaded!");
     controlToggle.addEventListener("click", () => {
       setControlMode(controlMode === "keyboard" ? "pointer" : "keyboard");
       resizeCanvasDisplay();
+    });
+  }
+
+  if (musicToggle) {
+    musicToggle.addEventListener("change", () => {
+      musicEnabled = musicToggle.checked;
+      if (!musicEnabled) {
+        stopMusic();
+      } else {
+        if (!gameOver && phase !== START_PHASE) {
+          playMusicLoop();
+        }
+      }
+    });
+  }
+  if (sfxToggle) {
+    sfxToggle.addEventListener("change", () => {
+      sfxEnabled = sfxToggle.checked;
     });
   }
 
@@ -176,8 +240,7 @@ console.log("Static site loaded!");
       updateSpeedFromSelect();
       updateThemeFromSelect();
       restart();
-      canvas.focus();
-    });
+      playGameStartThen   });
   }
 
   // Input
@@ -267,6 +330,7 @@ console.log("Static site loaded!");
       updateSpeedFromSelect();
       updateThemeFromSelect();
       restart();
+      playGameStartThenLoop();
       return;
     }
     if (controlMode !== "keyboard") return;
@@ -567,6 +631,7 @@ console.log("Static site loaded!");
   }
 
   function startVanish(groups) {
+    playBonus();
     vanishMask = makeMask(false);
     for (const g of groups) {
       for (const cell of g.cells) vanishMask[cell.row][cell.col] = true;
@@ -728,11 +793,16 @@ console.log("Static site loaded!");
   }
 
   function pushRow() {
+    const wasGameOver = gameOver;
     for (let r = 0; r < ROWS - 1; r++) {
       grid[r] = grid[r + 1].slice();
     }
     grid[ROWS - 1] = nextRow.slice();
     if (grid[0].some((v) => v !== null)) gameOver = true;
+    if (!wasGameOver && gameOver) {
+      stopMusic();
+      playGameOver();
+    }
 
     // Keep the selector attached to the same block content across a push
     if (selRow > 0) selRow--;
