@@ -1195,10 +1195,10 @@ console.log("Static site loaded!");
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 20px 'Micro 5', sans-serif";
+      ctx.font = "bold 40px 'Micro 5', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 8);
-      ctx.font = "14px 'Micro 5', sans-serif";
+      ctx.font = "28px 'Micro 5', sans-serif";
       ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 18);
     }
   }
