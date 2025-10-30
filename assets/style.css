@@ -199,7 +199,7 @@ footer {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  font-size: 2rem; /* default top-bar button size */
+  font-size: 2rem; /* uniform top-bar button size */
   line-height: 1;
   padding: 0 1rem;
 }
@@ -207,8 +207,9 @@ footer {
 .top-bar .icon-btn {
   font-size: 2rem;
 }
+/* Make primary button same font size as others on large screens */
 .top-bar .btn.primary {
-  font-size: 3rem; /* larger size for the primary action (New Game) */
+  font-size: 2rem;
 }
 
 /* Responsive sizing for smaller viewports */
