@@ -94,20 +94,6 @@ console.log("Static site loaded!");
       }
     } catch {}
   }
-  }
-
-  let startEndedHandler = null;
-  function primeBGPlayback() {
-    try {
-      const p = audioBG.play();
-      if (p && typeof p.then === "function") {
-        p.then(() => {
-          audioBG.pause();
-          audioBG.currentTime = 0;
-        }).catch(() => {});
-      }
-    } catch {}
-  }
 
   function stopMusic() {
     audioBG.pause();
@@ -456,7 +442,11 @@ console.log("Static site loaded!");
         riseOffset -= TILE;
       }
     }
-
+    
+    if (gameOver) {
+      onGameOverTriggered();
+    }
+    
     // Score count-up animation
     if (scoreEl && shownScore < score) {
       const inc = Math.max(1, Math.floor(2000 * dt));
@@ -861,8 +851,7 @@ console.log("Static site loaded!");
     grid[ROWS - 1] = nextRow.slice();
     if (grid[0].some((v) => v !== null)) gameOver = true;
     if (!wasGameOver && gameOver) {
-      stopMusic();
-      playGameOver();
+      onGameOverTriggered();
     }
 
     // Keep the selector attached to the same block content across a push
@@ -1183,6 +1172,7 @@ console.log("Static site loaded!");
     grid = createGrid();
     riseOffset = 0;
     gameOver = false;
+    gameOverSoundPlayed = false;
     nextRow = makeRandomRow();
 
     selRow = ROWS - 4;
