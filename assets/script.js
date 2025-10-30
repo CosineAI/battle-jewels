@@ -51,14 +51,44 @@ console.log("Static site loaded!");
   const audioBG = new Audio("assets/music/puzzle-league-bg.mp3");
   const audioBonus = new Audio("assets/music/bonus.mp3");
   const audioOver = new Audio("assets/music/game-over.mp3");
+
+  audioStart.preload = "auto";
+  audioBG.preload = "auto";
+  audioBonus.preload = "auto";
+  audioOver.preload = "auto";
+
   audioBG.loop = true;
+  audioBG.addEventListener("ended", () => {
+    // Fallback loop for browsers that ignore .loop on programmatically created audio
+    try {
+      audioBG.currentTime = 0;
+      if (musicEnabled) audioBG.play();
+    } catch {}
+  });
 
   let musicEnabled = musicToggle ? musicToggle.checked : true;
   let sfxEnabled = sfxToggle ? sfxToggle.checked : true;
 
+  let startEndedHandler = null;
+  function primeBGPlayback() {
+    try {
+      const p = audioBG.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          audioBG.pause();
+          audioBG.currentTime = 0;
+        }).catch(() => {});
+      }
+    } catch {}
+  }
+
   function stopMusic() {
     audioStart.pause();
     audioStart.currentTime = 0;
+    if (startEndedHandler) {
+      audioStart.removeEventListener("ended", startEndedHandler);
+      startEndedHandler = null;
+    }
     audioBG.pause();
     audioBG.currentTime = 0;
   }
@@ -70,12 +100,20 @@ console.log("Static site loaded!");
   function playGameStartThenLoop() {
     stopMusic();
     if (!musicEnabled) return;
+    primeBGPlayback();
     audioStart.currentTime = 0;
-    audioStart.onended = () => {
+    if (startEndedHandler) {
+      audioStart.removeEventListener("ended", startEndedHandler);
+    }
+    startEndedHandler = () => {
+      audioStart.removeEventListener("ended", startEndedHandler);
+      startEndedHandler = null;
       if (!musicEnabled) return;
       playMusicLoop();
     };
+    audioStart.addEventListener("ended", startEndedHandler);
     audioStart.play().catch(() => {
+      // If the start jingle can't play (autoplay policy), fall back to background
       playMusicLoop();
     });
   }
