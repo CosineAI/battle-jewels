@@ -256,7 +256,9 @@ console.log("Static site loaded!");
       updateSpeedFromSelect();
       updateThemeFromSelect();
       restart();
-      playGameStartThen   });
+      playGameStartThenLoop();
+      canvas.focus();
+    });
   }
 
   // Input
