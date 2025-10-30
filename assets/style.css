@@ -233,6 +233,14 @@ footer {
   .top-bar .actions {
     gap: 6px;
   }
+
+  /* Settings modal font size on small screens */
+  .modal-content h2,
+  .modal-content label,
+  .modal-content select,
+  .modal-actions .btn {
+    font-size: 2rem;
+  }
 }
 
 #game {
@@ -276,7 +284,7 @@ footer {
 }
 .modal-content h2 {
   margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+  font-size: 3rem;
 }
 .modal-content .form-row {
   display: flex;
@@ -288,13 +296,14 @@ footer {
 .modal-content label {
   font-weight: 600;
   color: #333;
+  font-size: 3rem;
 }
 .modal-content select {
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid #cfd4db;
   background: #fff;
-  font-size: 0.95rem;
+  font-size: 3rem;
   color: #222;
 }
 .modal-actions {
