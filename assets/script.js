@@ -1147,7 +1147,7 @@ console.log("Static site loaded!");
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 18px 'Micro 5', sans-serif";
+      ctx.font = "bold 48px 'Micro 5', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10);
       ctx.font = "13px 'Micro 5', sans-serifnewrif";
