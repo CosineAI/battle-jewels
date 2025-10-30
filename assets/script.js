@@ -5,7 +5,18 @@ console.log("Static site loaded!");
   const TILE = 36;
   const COLS = 8;
   const ROWS = 14;
-  const COLORS = ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"];
+
+  // Color themes (5 colors each, indices map to shapes in drawTile)
+  const THEMES = {
+    default: ["#e74c3c", "#27ae60", "#3498db", "#f1c40f", "#9b59b6"],
+    pastel:  ["#ffadad", "#caffbf", "#a0c4ff", "#ffd6a5", "#bdb2ff"],
+    neon:    ["#ff2079", "#39ff14", "#00cfff", "#faff00", "#ff6ec7"],
+    synthwave: ["#ff4f9a", "#8a2be2", "#00e5ff", "#f9c80e", "#2ce8f5"],
+    retro:   ["#d35400", "#27ae60", "#c0392b", "#8e44ad", "#f1c40f"],
+    shooter: ["#4e342e", "#6d4c41", "#8d6e63", "#a1887f", "#5d4037"]
+  };
+  let COLORS = THEMES.default;
+
   const ORB = -1; // special power-up tile
   const BOMB_ROW = -2; // row bomb
   const BOMB_COL = -3; // column bomb
@@ -18,6 +29,7 @@ console.log("Static site loaded!");
   // Animation timings
   const VANISH_MS = 220;
   const DROP_MS = 240;
+  const SWAP_MS = 160;
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -25,9 +37,55 @@ console.log("Static site loaded!");
 
   const speedSelect = document.getElementById("speed");
   const startBtn = document.getElementById("startBtn");
+  const themeSelect = document.getElementById("theme");
+  const controlToggle = document.getElementById("controlToggle");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsModal = document.getElementById("settingsModal");
+  const settingsBackdrop = document.getElementById("settingsBackdrop");
+  const settingsClose = document.getElementById("settingsClose");
 
   canvas.width = COLS * TILE;
   canvas.height = ROWS * TILE;
+
+  const mainEl = document.querySelector("main");
+  const topBarEl = document.querySelector(".top-bar");
+  const scoreBarEl = document.querySelector(".score-bar");
+  const instructionsEl = document.querySelector(".instructions");
+
+  function resizeCanvasDisplay() {
+    const aspect = canvas.width / canvas.height;
+
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+    const topH = topBarEl ? topBarEl.getBoundingClientRect().height : 0;
+    const scoreH = scoreBarEl ? scoreBarEl.getBoundingClientRect().height : 0;
+    const instrH = instructionsEl ? instructionsEl.getBoundingClientRect().height : 0;
+
+    let padTop = 0, padBottom = 0;
+    if (mainEl) {
+      const ms = getComputedStyle(mainEl);
+      padTop = parseFloat(ms.paddingTop) || 0;
+      padBottom = parseFloat(ms.paddingBottom) || 0;
+    }
+
+    const availW = vw - 8;
+    const availH = vh - topH - scoreH - instrH - padTop - padBottom - 8;
+
+    let drawW = Math.min(availW, availH * aspect);
+    let drawH = drawW / aspect;
+
+    // clamp to reasonable minimums
+    drawW = Math.max(240, Math.floor(drawW));
+    drawH = Math.max(Math.floor(240 / aspect), Math.floor(drawH));
+
+    canvas.style.width = `${drawW}px`;
+    canvas.style.height = `${drawH}px`;
+  }
+
+  window.addEventListener("resize", resizeCanvasDisplay, { passive: true });
+  window.addEventListener("orientationchange", resizeCanvasDisplay);
+  resizeCanvasDisplay();
 
   let grid = createGrid();
   let riseOffset = 0;
@@ -36,6 +94,7 @@ console.log("Static site loaded!");
   let selRow = ROWS - 4;
   let selCol = Math.max(0, Math.floor(COLS / 2) - 1);
   let dragStart = null;
+  let dragStartPos = null;
   let lastTime = 0;
   let gameFocused = false;
 
@@ -56,24 +115,66 @@ console.log("Static site loaded!");
   let chainActive = false;
 
   // Animation state
-  let phase = "idle"; // "idle" | "vanish" | "drop"
+  const START_PHASE = "await_start";
+  let phase = START_PHASE; // "await_start" | "idle" | "swap" | "vanish" | "drop"
   let vanishMask = makeMask(false);
   let vanishStart = 0;
   let dropAnim = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // px offset (negative -> above target)
   let dropStart = 0;
-
-  initBoard();
+  let swapData = null; // { a:{row,col,val}, b:{row,col,val}, dir:+1|-1 }
+  let swapStart = 0;
 
   function updateSpeedFromSelect() {
     const v = (speedSelect && speedSelect.value) || "normal";
     speedMultiplier = v === "slow" ? 0.5 : v === "fast" ? 1.5 : 1;
   }
+  function updateThemeFromSelect() {
+    const t = (themeSelect && themeSelect.value) || "default";
+    COLORS = THEMES[t] || THEMES.default;
+  }
+  let controlMode = "keyboard";
+  function setControlMode(mode) {
+    controlMode = mode;
+    if (controlToggle) {
+      controlToggle.textContent = controlMode === "keyboard" ? "Keyboard" : "Mouse/Touch";
+    }
+  }
   // initialize from UI
   updateSpeedFromSelect();
+  updateThemeFromSelect();
+  setControlMode("keyboard");
+  if (themeSelect) {
+    themeSelect.addEventListener("change", updateThemeFromSelect);
+  }
+  if (controlToggle) {
+    controlToggle.addEventListener("click", () => {
+      setControlMode(controlMode === "keyboard" ? "pointer" : "keyboard");
+      resizeCanvasDisplay();
+    });
+  }
+
+  // Settings modal
+  function openSettings() {
+    if (settingsModal) {
+      settingsModal.classList.add("open");
+      settingsModal.setAttribute("aria-hidden", "false");
+    }
+  }
+  function closeSettings() {
+    if (settingsModal) {
+      settingsModal.classList.remove("open");
+      settingsModal.setAttribute("aria-hidden", "true");
+    }
+    resizeCanvasDisplay();
+  }
+  if (settingsBtn) settingsBtn.addEventListener("click", openSettings);
+  if (settingsBackdrop) settingsBackdrop.addEventListener("click", closeSettings);
+  if (settingsClose) settingsClose.addEventListener("click", closeSettings);
 
   if (startBtn) {
     startBtn.addEventListener("click", () => {
       updateSpeedFromSelect();
+      updateThemeFromSelect();
       restart();
       canvas.focus();
     });
@@ -81,19 +182,72 @@ console.log("Static site loaded!");
 
   // Input
   canvas.addEventListener("mousedown", (e) => {
-    const cell = toCell(e);
-    if (!cell || phase !== "idle") return;
+    if (controlMode !== "pointer" || phase !== "idle") return;
+    const cell = toCellFromEvent(e);
+    if (!cell) return;
     dragStart = cell;
+    dragStartPos = toCanvasXY(e);
   });
 
   window.addEventListener("mouseup", (e) => {
-    if (!dragStart || phase !== "idle") return;
-    const cell = toCell(e);
-    if (cell && isAdjacent(dragStart, cell)) {
-      swapAndStartCycle(dragStart, cell);
+    if (controlMode !== "pointer" || !dragStart || phase !== "idle") return;
+    const endCell = toCellFromEvent(e);
+    const endPos = toCanvasXY(e);
+    let didSwap = false;
+
+    if (endCell && endCell.row === dragStart.row && Math.abs(endCell.col - dragStart.col) === 1) {
+      swapAndStartCycle(dragStart, endCell);
+      didSwap = true;
+    } else if (dragStartPos && endPos) {
+      const dx = endPos.x - dragStartPos.x;
+      const dy = endPos.y - dragStartPos.y;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TILE * 0.25) {
+        if (dx > 0 && dragStart.col < COLS - 1) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col + 1 });
+          didSwap = true;
+        } else if (dx < 0 && dragStart.col > 0) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col - 1 });
+          didSwap = true;
+        }
+      }
     }
     dragStart = null;
+    dragStartPos = null;
   });
+
+  canvas.addEventListener("touchstart", (e) => {
+    if (controlMode !== "pointer" || phase !== "idle") return;
+    const cell = toCellFromEvent(e);
+    if (!cell) return;
+    dragStart = cell;
+    dragStartPos = toCanvasXY(e);
+  }, { passive: true });
+
+  window.addEventListener("touchend", (e) => {
+    if (controlMode !== "pointer" || !dragStart || phase !== "idle") return;
+    const endCell = toCellFromEvent(e);
+    const endPos = toCanvasXY(e);
+    let didSwap = false;
+
+    if (endCell && endCell.row === dragStart.row && Math.abs(endCell.col - dragStart.col) === 1) {
+      swapAndStartCycle(dragStart, endCell);
+      didSwap = true;
+    } else if (dragStartPos && endPos) {
+      const dx = endPos.x - dragStartPos.x;
+      const dy = endPos.y - dragStartPos.y;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TILE * 0.25) {
+        if (dx > 0 && dragStart.col < COLS - 1) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col + 1 });
+          didSwap = true;
+        } else if (dx < 0 && dragStart.col > 0) {
+          swapAndStartCycle(dragStart, { row: dragStart.row, col: dragStart.col - 1 });
+          didSwap = true;
+        }
+      }
+    }
+    dragStart = null;
+    dragStartPos = null;
+  }, { passive: true });
 
   // Focus and scroll control
   canvas.addEventListener("focus", () => { gameFocused = true; });
@@ -111,9 +265,11 @@ console.log("Static site loaded!");
   document.addEventListener("keydown", (e) => {
     if (e.key === "r" || e.key === "R") {
       updateSpeedFromSelect();
+      updateThemeFromSelect();
       restart();
       return;
     }
+    if (controlMode !== "keyboard") return;
     if (gameFocused) {
       const blockKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "Space", "Spacebar"];
       if (blockKeys.includes(e.key)) e.preventDefault();
@@ -157,6 +313,10 @@ console.log("Static site loaded!");
     } else if (phase === "drop") {
       if (now - dropStart >= DROP_MS) {
         finishDrop();
+      }
+    } else if (phase === "swap") {
+      if (now - swapStart >= SWAP_MS) {
+        finishSwap();
       }
     }
 
@@ -266,85 +426,48 @@ console.log("Static site loaded!");
     return { row, col };
   }
 
+  function getEventClientXY(e) {
+    if (e && e.touches && e.touches[0]) {
+      return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+    }
+    if (e && e.changedTouches && e.changedTouches[0]) {
+      return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  }
+
+  function toCanvasXY(e) {
+    const { clientX, clientY } = getEventClientXY(e);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    return { x, y };
+  }
+
+  function toCellFromEvent(e) {
+    const { x, y } = toCanvasXY(e);
+    const col = Math.floor(x / TILE);
+    const row = Math.floor((y + riseOffset) / TILE);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+    return { row, col };
+  }
+
   function isAdjacent(a, b) {
     return Math.abs(a.row - b.row) + Math.abs(a.col - b.col) === 1;
   }
 
   function swapAndStartCycle(a, b) {
-    const { row: r0, col: c0 } = a;
-    const { row: r1, col: c1 } = b;
-    const v0 = grid[r0][c0];
-    const v1 = grid[r1][c1];
-
-    // Perform swap
-    grid[r0][c0] = v1;
-    grid[r1][c1] = v0;
-
-    // Begin a new chain from player input
-    chainActive = true;
-    chainDepth = 0;
-
-    // Bomb activation: if swapped, blow row/column depending on bomb type
-    const bombGroups = [];
-    if (isBombRow(v0)) {
-      const cells = [];
-      for (let cc = 0; cc < COLS; cc++) {
-        if (grid[r1][cc] !== null) cells.push({ row: r1, col: cc });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
-    } else if (isBombCol(v0)) {
-      const cells = [];
-      for (let rr = 0; rr < ROWS; rr++) {
-        if (grid[rr][c1] !== null) cells.push({ row: rr, col: c1 });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
-    }
-    if (isBombRow(v1)) {
-      const cells = [];
-      for (let cc = 0; cc < COLS; cc++) {
-        if (grid[r0][cc] !== null) cells.push({ row: r0, col: cc });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
-    } else if (isBombCol(v1)) {
-      const cells = [];
-      for (let rr = 0; rr < ROWS; rr++) {
-        if (grid[rr][c0] !== null) cells.push({ row: rr, col: c0 });
-      }
-      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
-    }
-    if (bombGroups.length) {
-      startVanish(bombGroups);
-      return;
-    }
-
-    // Orb activation: if swapped with a colored block, remove all of that color
-    let colorToClear = null;
-    let orbPos = null;
-    if (isOrb(v0) && isColor(v1)) {
-      colorToClear = v1;
-      orbPos = { row: r1, col: c1 };
-    } else if (isOrb(v1) && isColor(v0)) {
-      colorToClear = v0;
-      orbPos = { row: r0, col: c0 };
-    }
-
-    if (colorToClear !== null) {
-      const cells = [];
-      for (let rr = 0; rr < ROWS; rr++) {
-        for (let cc = 0; cc < COLS; cc++) {
-          if (grid[rr][cc] === colorToClear) {
-            cells.push({ row: rr, col: cc });
-          }
-        }
-      }
-      // Consume the orb itself
-      cells.push(orbPos);
-
-      startVanish([{ cells, length: cells.length, type: "orb" }]);
-      return;
-    }
-
-    startCascadeDropThenMatch();
+    if (phase !== "idle" || !a || !b || !isAdjacent(a, b)) return;
+    // Prepare swap animation
+    swapData = {
+      a: { row: a.row, col: a.col, val: grid[a.row][a.col] },
+      b: { row: b.row, col: b.col, val: grid[b.row][b.col] },
+      dir: Math.sign(b.col - a.col) || 0
+    };
+    swapStart = performance.now();
+    phase = "swap";
   }
 
   function findMatchGroups() {
@@ -422,22 +545,25 @@ console.log("Static site loaded!");
 
   function startCascadeDropThenMatch() {
     if (phase !== "idle") return;
-    // First, animate any necessary drops (gravity always applies)
+
+    // Check for matches immediately (match-before-drop)
+    const groups = findMatchGroups();
+    if (groups.length) {
+      startVanish(groups);
+      return;
+    }
+
+    // If no matches, apply gravity/drops
     if (prepareDropAnim()) {
       dropStart = performance.now();
       phase = "drop";
       return;
     }
-    // If no drops, check for matches
-    const groups = findMatchGroups();
-    if (groups.length) {
-      startVanish(groups);
-    } else {
-      // End chain with no matches
-      chainActive = false;
-      chainDepth = 0;
-      phase = "idle";
-    }
+
+    // End chain with no matches or drops
+    chainActive = false;
+    chainDepth = 0;
+    phase = "idle";
   }
 
   function startVanish(groups) {
@@ -517,6 +643,88 @@ console.log("Static site loaded!");
       chainDepth = 0;
       phase = "idle";
     }
+  }
+
+  function finishSwap() {
+    if (!swapData) { phase = "idle"; return; }
+    const { a, b } = swapData;
+    const v0 = a.val;
+    const v1 = b.val;
+
+    // Apply the swap to the grid
+    grid[a.row][a.col] = v1;
+    grid[b.row][b.col] = v0;
+
+    // Clear swap state
+    swapData = null;
+    swapStart = 0;
+    phase = "idle";
+
+    // Begin a new chain from player input
+    chainActive = true;
+    chainDepth = 0;
+
+    // Bomb activation post-swap
+    const bombGroups = [];
+    if (isBombRow(v0)) {
+      const cells = [];
+      for (let cc = 0; cc < COLS; cc++) {
+        if (grid[b.row][cc] !== null) cells.push({ row: b.row, col: cc });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
+    } else if (isBombCol(v0)) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (grid[rr][b.col] !== null) cells.push({ row: rr, col: b.col });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
+    }
+    if (isBombRow(v1)) {
+      const cells = [];
+      for (let cc = 0; cc < COLS; cc++) {
+        if (grid[a.row][cc] !== null) cells.push({ row: a.row, col: cc });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_row" });
+    } else if (isBombCol(v1)) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        if (grid[rr][a.col] !== null) cells.push({ row: rr, col: a.col });
+      }
+      bombGroups.push({ cells, length: cells.length, type: "bomb_col" });
+    }
+    if (bombGroups.length) {
+      startVanish(bombGroups);
+      return;
+    }
+
+    // Orb activation post-swap
+    let colorToClear = null;
+    let orbPos = null;
+    if (isOrb(v0) && isColor(v1)) {
+      colorToClear = v1;
+      orbPos = { row: b.row, col: b.col };
+    } else if (isOrb(v1) && isColor(v0)) {
+      colorToClear = v0;
+      orbPos = { row: a.row, col: a.col };
+    }
+
+    if (colorToClear !== null) {
+      const cells = [];
+      for (let rr = 0; rr < ROWS; rr++) {
+        for (let cc = 0; cc < COLS; cc++) {
+          if (grid[rr][cc] === colorToClear) {
+            cells.push({ row: rr, col: cc });
+          }
+        }
+      }
+      // Consume the orb itself
+      cells.push(orbPos);
+
+      startVanish([{ cells, length: cells.length, type: "orb" }]);
+      return;
+    }
+
+    startCascadeDropThenMatch();
   }
 
   function pushRow() {
@@ -727,11 +935,18 @@ console.log("Static site loaded!");
     const dropEase = easeOutCubic(dropProgress);
     const vanishProgress = phase === "vanish" ? clamp01((now - vanishStart) / VANISH_MS) : 0;
 
-    // Existing grid
+    // Existing grid (skip tiles involved in a swap animation)
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const v = grid[r][c];
         if (v === null) continue;
+
+        // Skip the two tiles currently being animated in a swap
+        if (phase === "swap" && swapData &&
+            ((r === swapData.a.row && c === swapData.a.col) ||
+             (r === swapData.b.row && c === swapData.b.col))) {
+          continue;
+        }
 
         let y = r * TILE - riseOffset;
         if (y > canvas.height) continue;
@@ -752,6 +967,26 @@ console.log("Static site loaded!");
         } else {
           drawTile(x, y, v, 1, 1);
         }
+      }
+    }
+
+    // Swap animation overlay (draw moving tiles)
+    if (phase === "swap" && swapData) {
+      const p = clamp01((now - swapStart) / SWAP_MS);
+      const ease = easeOutCubic(p);
+      const dx = (swapData.dir || 0) * TILE * ease;
+
+      // Tile from A moves towards B
+      {
+        const x = swapData.a.col * TILE + dx;
+        const y = swapData.a.row * TILE - riseOffset;
+        drawTile(x, y, swapData.a.val);
+      }
+      // Tile from B moves towards A
+      {
+        const x = swapData.b.col * TILE - dx;
+        const y = swapData.b.row * TILE - riseOffset;
+        drawTile(x, y, swapData.b.val);
       }
     }
 
@@ -780,17 +1015,28 @@ console.log("Static site loaded!");
       ctx.stroke();
     }
 
-    // Selection overlay (follows block motion including drop animation)
-    const sx = selCol * TILE;
-    const syLeft = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol] || 0) * (1 - dropEase);
-    const syRight = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol + 1] || 0) * (1 - dropEase);
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(sx + 2, syLeft + 2, TILE - 4, TILE - 4);
-    ctx.strokeRect(sx + TILE + 2, syRight + 2, TILE - 4, TILE - 4);
-    ctx.lineWidth = 1;
+    // Selection overlay (only in keyboard mode; follows block motion including drop animation)
+    if (controlMode === "keyboard") {
+      const sx = selCol * TILE;
+      const syLeft = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol] || 0) * (1 - dropEase);
+      const syRight = selRow * TILE - riseOffset + (dropAnim[selRow]?.[selCol + 1] || 0) * (1 - dropEase);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx + 2, syLeft + 2, TILE - 4, TILE - 4);
+      ctx.strokeRect(sx + TILE + 2, syRight + 2, TILE - 4, TILE - 4);
+      ctx.lineWidth = 1;
+    }
 
-    if (gameOver) {
+    if (phase === START_PHASE) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 18px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10);
+      ctx.font = "13px system-ui, sans-serif";
+      ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 16);
+    } else if (gameOver) {
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
