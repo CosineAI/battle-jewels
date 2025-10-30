@@ -81,12 +81,15 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap; /* allow wrapping to prevent overflow */
+  row-gap: 8px;
 }
 
 .left-controls {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .toggle {
@@ -124,6 +127,7 @@ footer {
 .top-bar .actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .score-bar {
@@ -221,6 +225,10 @@ footer {
   .top-bar .icon-btn {
     width: 3rem;
     height: 3rem;
+  }
+  .left-controls,
+  .top-bar .actions {
+    gap: 6px;
   }
 }
 

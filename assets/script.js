@@ -1176,14 +1176,21 @@ console.log("Static site loaded!");
           y += lineHeight;
         }
         ctx.textBaseline = prevBaseline;
+        return y; // return position just after the last line
       };
 
       // Draw wrapped headline (3rem ~ 48px)
-      drawWrappedCentered("Press New Game to begin", canvas.width / 2, canvas.height / 2 - 10, canvas.width * 0.9, 54);
+      const afterHeadlineY = drawWrappedCentered(
+        "Press New Game to begin",
+        canvas.width / 2,
+        canvas.height / 2 - 10,
+        canvas.width * 0.9,
+        54
+      );
 
-      // Secondary line
+      // Secondary line with extra spacing under the headline
       ctx.font = "13px 'Micro 5', sans-serif";
-      ctx.fillText("Choose speed and theme above", canvas.width / 2, canvas.height / 2 + 36);
+      ctx.fillText("Choose speed and theme above", canvas.width / 2, afterHeadlineY + 20);
     } else if (gameOver) {
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
