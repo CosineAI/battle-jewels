@@ -64,8 +64,37 @@ console.log("Static site loaded!");
     } catch {}
   });
 
-  let musicEnabled = musicToggle ? musicToggle.checked : true;
-  let sfxEnabled = sfxToggle ? sfxToggle.checked : true;
+  let musicEnabled = true;
+  let sfxEnabled = true;
+
+  function updateAudioButtonsUI() {
+    if (musicToggle) {
+      musicToggle.textContent = musicEnabled ? "Music 🔊" : "Music 🔇";
+      musicToggle.setAttribute("aria-pressed", musicEnabled ? "true" : "false");
+      musicToggle.setAttribute("aria-label", musicEnabled ? "Music On" : "Music Off");
+      musicToggle.title = musicEnabled ? "Music On" : "Music Off";
+    }
+    if (sfxToggle) {
+      sfxToggle.textContent = sfxEnabled ? "SFX 🔔" : "SFX 🔕";
+      sfxToggle.setAttribute("aria-pressed", sfxEnabled ? "true" : "false");
+      sfxToggle.setAttribute("aria-label", sfxEnabled ? "SFX On" : "SFX Off");
+      sfxToggle.title = sfxEnabled ? "SFX On" : "SFX Off";
+    }
+  }
+
+  let startEndedHandler = null;
+  function primeBGPlayback() {
+    try {
+      const p = audioBG.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          audioBG.pause();
+          audioBG.currentTime = 0;
+        }).catch(() => {});
+      }
+    } catch {}
+  }
+  }
 
   let startEndedHandler = null;
   function primeBGPlayback() {
@@ -104,6 +133,13 @@ console.log("Static site loaded!");
     if (!sfxEnabled) return;
     audioOver.currentTime = 0;
     audioOver.play().catch(() => {});
+  }
+
+  function onGameOverTriggered() {
+    if (gameOverSoundPlayed) return;
+    stopMusic();
+    playGameOver();
+    gameOverSoundPlayed = true;
   }
 
   canvas.width = COLS * TILE;
@@ -152,6 +188,7 @@ console.log("Static site loaded!");
   let grid = createGrid();
   let riseOffset = 0;
   let gameOver = false;
+  let gameOverSoundPlayed = false;
   let nextRow = makeRandomRow();
   let selRow = ROWS - 4;
   let selCol = Math.max(0, Math.floor(COLS / 2) - 1);
@@ -216,8 +253,8 @@ console.log("Static site loaded!");
   }
 
   if (musicToggle) {
-    musicToggle.addEventListener("change", () => {
-      musicEnabled = musicToggle.checked;
+    musicToggle.addEventListener("click", () => {
+      musicEnabled = !musicEnabled;
       if (!musicEnabled) {
         stopMusic();
       } else {
@@ -225,13 +262,19 @@ console.log("Static site loaded!");
           playMusicLoop();
         }
       }
+      renderAudioButtons();
     });
   }
   if (sfxToggle) {
-    sfxToggle.addEventListener("change", () => {
-      sfxEnabled = sfxToggle.checked;
+    sfxToggle.addEventListener("click", () => {
+      sfxEnabled = !sfxEnabled;
+      renderAudioButtons();
     });
   }
+
+  renderAudioButtons(););
+  }
+  updateAudioButtonsUI();
 
   // Settings modal
   function openSettings() {

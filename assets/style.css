@@ -93,6 +93,29 @@ footer {
   user-select: none;
 }
 
+/* Icon buttons for Music / SFX */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.icon-btn[aria-pressed="false"] {
+  background: #94a3b8;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .top-bar .actions {
   display: flex;
   gap: 10px;
