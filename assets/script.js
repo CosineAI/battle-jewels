@@ -69,13 +69,13 @@ console.log("Static site loaded!");
 
   function updateAudioButtonsUI() {
     if (musicToggle) {
-      musicToggle.textContent = musicEnabled ? "Music 🔊" : "Music 🔇";
+      musicToggle.textContent = musicEnabled ? "🔊" : "🔇";
       musicToggle.setAttribute("aria-pressed", musicEnabled ? "true" : "false");
       musicToggle.setAttribute("aria-label", musicEnabled ? "Music On" : "Music Off");
       musicToggle.title = musicEnabled ? "Music On" : "Music Off";
     }
     if (sfxToggle) {
-      sfxToggle.textContent = sfxEnabled ? "SFX 🔔" : "SFX 🔕";
+      sfxToggle.textContent = sfxEnabled ? "🔔" : "🔕";
       sfxToggle.setAttribute("aria-pressed", sfxEnabled ? "true" : "false");
       sfxToggle.setAttribute("aria-label", sfxEnabled ? "SFX On" : "SFX Off");
       sfxToggle.title = sfxEnabled ? "SFX On" : "SFX Off";
@@ -243,23 +243,19 @@ console.log("Static site loaded!");
       musicEnabled = !musicEnabled;
       if (!musicEnabled) {
         stopMusic();
-      } else {
-        if (!gameOver && phase !== START_PHASE) {
-          playMusicLoop();
-        }
+      } else if (!gameOver && phase !== START_PHASE) {
+        playMusicLoop();
       }
-      renderAudioButtons();
+      updateAudioButtonsUI();
     });
   }
   if (sfxToggle) {
     sfxToggle.addEventListener("click", () => {
       sfxEnabled = !sfxEnabled;
-      renderAudioButtons();
+      updateAudioButtonsUI();
     });
   }
 
-  renderAudioButtons(););
-  }
   updateAudioButtonsUI();
 
   // Settings modal
