@@ -169,6 +169,16 @@ footer {
   box-shadow: 0 6px 18px rgba(43,124,255,0.28);
 }
 
+/* Ensure all top bar buttons are the same height */
+.top-bar .btn {
+  height: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 .controls button:hover,
 .top-bar button:hover,
 .modal-actions button:hover {
