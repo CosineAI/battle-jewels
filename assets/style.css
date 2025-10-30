@@ -36,7 +36,7 @@ main {
   max-width: calc(100vw - 2rem); /* account for 1rem padding on each side */
   box-sizing: border-box; /* include padding in width calc */
   margin: 0 auto;
-  background: rgba(255,255,255,0.7);
+  background: none;
   padding: 1rem;
   border-radius: 0;
   box-shadow: none;
@@ -236,7 +236,8 @@ footer {
 
 #game {
   display: block;
-  background: #0f1115;
+  background: transparent;
+  opacity: 0.92; /* slight transparency to reveal bg */
   border: 2px solid #222;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.15);
