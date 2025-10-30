@@ -47,12 +47,10 @@ console.log("Static site loaded!");
   const sfxToggle = document.getElementById("sfxToggle");
 
   // Audio
-  const audioStart = new Audio("assets/music/game-start.mp3");
   const audioBG = new Audio("assets/music/puzzle-league-bg.mp3");
   const audioBonus = new Audio("assets/music/bonus.mp3");
   const audioOver = new Audio("assets/music/game-over.mp3");
 
-  audioStart.preload = "auto";
   audioBG.preload = "auto";
   audioBonus.preload = "auto";
   audioOver.preload = "auto";
@@ -83,12 +81,6 @@ console.log("Static site loaded!");
   }
 
   function stopMusic() {
-    audioStart.pause();
-    audioStart.currentTime = 0;
-    if (startEndedHandler) {
-      audioStart.removeEventListener("ended", startEndedHandler);
-      startEndedHandler = null;
-    }
     audioBG.pause();
     audioBG.currentTime = 0;
   }
@@ -98,24 +90,10 @@ console.log("Static site loaded!");
     audioBG.play().catch(() => {});
   }
   function playGameStartThenLoop() {
+    // Now starts background music immediately (no start jingle)
     stopMusic();
     if (!musicEnabled) return;
-    primeBGPlayback();
-    audioStart.currentTime = 0;
-    if (startEndedHandler) {
-      audioStart.removeEventListener("ended", startEndedHandler);
-    }
-    startEndedHandler = () => {
-      audioStart.removeEventListener("ended", startEndedHandler);
-      startEndedHandler = null;
-      if (!musicEnabled) return;
-      playMusicLoop();
-    };
-    audioStart.addEventListener("ended", startEndedHandler);
-    audioStart.play().catch(() => {
-      // If the start jingle can't play (autoplay policy), fall back to background
-      playMusicLoop();
-    });
+    playMusicLoop();
   }
   function playBonus() {
     if (!sfxEnabled) return;
